@@ -102,6 +102,45 @@ Building the site needs **no credentials**. `data/graphs` is committed and is
 what the site reads. Credentials are only required to pull new data with
 `npm run sweep` or `npm run refresh`.
 
+## Adapting this to another market
+
+This repo is DFW-specific by construction, not by accident: the point was to
+measure two named cities, so nothing sits behind a config layer. Porting it is
+a fork and five edits, all small.
+
+**The pipeline** — enough to produce graphs for your own metro:
+
+| Where | What to change |
+|---|---|
+| `scripts/sweep.mjs` `CITIES` (~L96) | City keys, display names, DataForSEO `location_code` |
+| `scripts/sweep.mjs` `INDUSTRIES` (~L103) | Head terms per industry. Don't inherit ours — see below |
+| `scripts/build-graphs.mjs` `CITY_KEYS` (~L70) | Must match the keys in `CITIES` exactly |
+| `scripts/build-graphs.mjs` refdomains regex (~L214) | The same city keys again, hardcoded into a filename pattern |
+| `scripts/buckets.mjs` `GEO` (~L22) | The local-identity test: your metro's nicknames and suburbs |
+
+City keys appear in three places and are not derived from one another. **If they
+disagree, markets drop out of the build silently rather than erroring** — both
+call sites discard non-matches (`.filter((m) => m.city)`, `if (!m) continue`).
+Check the market count after `npm run graphs`.
+
+`GEO` is the easy one to skip and the wrong one to skip. It is what separates
+"a local domain" from "a domain", so every finding about local authority
+depends on it. It is a plain list of place names; give it yours.
+
+Then `npm run sweep` (paid, about $12 for 20 industries × 2 cities on our last
+full run) and `npm run graphs` (free).
+
+**Do not inherit our industry list.** It came from a 48-industry scan of DFW
+market value and local capturability, and that scan overturned the assumption
+we started with — roofing landed at #30. Your metro will rank differently.
+`docs/industry-selection.md` describes the method; run it for your market
+rather than trusting our answer.
+
+**The site is a separate job.** Thirteen files under `src/` carry DFW copy,
+plus `site:` in `astro.config.mjs` and the card eyebrow in `scripts/build-og.mjs`.
+The pipeline is portable; the written analysis is not, and shouldn't be — that
+is the part that has to be about your market.
+
 ## Analytics
 
 Off unless `PUBLIC_GA_ID` or `PUBLIC_CF_BEACON_TOKEN` is set at build time. With
