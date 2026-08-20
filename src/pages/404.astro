@@ -1,0 +1,71 @@
+---
+/*
+ * Served by Cloudflare for any unmatched path (not_found_handling = "404-page"
+ * in wrangler.toml). With 525 pages, most 404s are mistyped or stale market
+ * URLs, so this offers the actual market list rather than an apology.
+ */
+import Head from '../components/Head.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import { CITIES, PUBLISH_TIER, allMarkets, labelFor } from '../lib/markets.js'
+import '../styles/global.css'
+
+const markets = allMarkets()
+const industries = [...new Set(markets.map((m) => m.industry))]
+  .sort((a, b) => {
+    const ai = PUBLISH_TIER.indexOf(a), bi = PUBLISH_TIER.indexOf(b)
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi)
+  })
+---
+<html lang="en">
+<head>
+  <Head
+    title="Page not found · DFW SEO"
+    description="That page does not exist. Every market we have mapped across Dallas and Fort Worth is listed here."
+    noindex={true}
+  />
+</head>
+<body>
+  <Nav />
+  <main class="wrap page">
+    <p class="eyebrow">404</p>
+    <h1>That page does not exist</h1>
+    <p class="lede">Either the address is mistyped, or it pointed at a market that has since
+    been renamed. Everything we have mapped is below.</p>
+
+    <div class="cols">
+      {CITIES.map((c) => (
+        <section>
+          <h2><a href={`/${c.key}`}>{c.name}</a></h2>
+          <ul>
+            {industries.filter((i) => markets.some((m) => m.city === c.key && m.industry === i))
+              .map((i) => <li><a href={`/${c.key}/${i}`}>{labelFor(i)}</a></li>)}
+          </ul>
+        </section>
+      ))}
+      <section>
+        <h2>About the data</h2>
+        <ul>
+          <li><a href="/methodology">Methodology</a></li>
+          <li><a href="/industries">Market value</a></li>
+          <li><a href="/">All markets</a></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</body>
+</html>
+
+<style>
+  .page { padding: 60px var(--gutter) 40px; }
+  .page h1 { max-width: 20ch; }
+  .lede { max-width: 54ch; margin-bottom: 44px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 34px; }
+  .cols h2 { font-size: 20px; margin: 0 0 12px; }
+  .cols h2 a { color: var(--ink); text-decoration: none; }
+  .cols h2 a:hover { color: var(--ember); }
+  .cols ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .cols li a { color: var(--ink-soft); text-decoration: none; font-size: 13.5px; text-transform: capitalize; }
+  .cols li a:hover { color: var(--ember); }
+</style>
