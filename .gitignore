@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.astro/
+*.log
+.DS_Store
+.env
+.env.*
+
+# Raw API responses: 281MB and regenerable. `npm run sweep` rebuilds them, and
+# they are pure cache -- data/graphs is the artifact the site actually reads.
+data/raw/
+data/raw_v1/
+
+# Generated at build time by prebuild (build-icons, build-og). 38MB of PNGs
+# that would otherwise churn the diff on every refresh.
+public/og/
+public/icon-*.png
+public/apple-touch-icon.png
+public/favicon.ico
+public/favicon.svg
+
+# Copied from data/graphs by prebuild. Tracking it duplicated 19MB, because the
+# symlink that used to live here was materialized into real files by git.
+public/graphs/

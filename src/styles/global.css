@@ -1,0 +1,157 @@
+/* ---------------------------------------------------------------------------
+   Fonts, self-hosted.
+
+   These used to come from the Google Fonts CDN, which costs a render-blocking
+   stylesheet from fonts.googleapis.com before the browser even learns which
+   font files it needs, then a second connection to fonts.gstatic.com to fetch
+   them. Two cross-origin handshakes sit in front of the first paint of a site
+   whose whole claim is that it knows what makes pages rank.
+
+   Same bytes, one origin, and Head.astro can preload them because the URLs are
+   known at build time rather than discovered from a stylesheet.
+
+   Latin subsets only — the same ones the CDN was serving, since unicode-range
+   meant no visitor was downloading the Cyrillic or Vietnamese cuts anyway. The
+   en dash and middle dot this site leans on are both inside that range.
+
+   No italic. The CDN request asked for Instrument Serif ital@0;1 but nothing
+   using --serif contains an <em>: the italics on the site sit inside mono
+   spans, which have no italic cut loaded and are obliqued synthetically. That
+   was one file fetched on every page for nothing.
+--------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Archivo';
+  /* One variable file spans the range. The CDN declared 400, 500 and 600 as
+     three separate faces that all pointed at this same file. */
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/archivo-latin-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-400-latin.woff2') format('woff2');
+}
+
+/* ---------------------------------------------------------------------------
+   Palette: a research publication, not a SaaS dashboard.
+
+   Ink is a deep blue-black rather than neutral charcoal, so the surface reads
+   as printed rather than as a UI chrome. Text is warm paper-white, not pure
+   white, which stops the long-form copy from vibrating on dark.
+
+   Accent (ember) is reserved: emphasis in prose, the live story rail, and the
+   "you are here" state. Never decoration. The tier colors below belong to the
+   data and are deliberately separate from the brand accent so a chart never
+   reads as branding.
+--------------------------------------------------------------------------- */
+:root {
+  --bg:        #0c0e13;
+  --bg-lift:   #10131a;
+  --panel:     #141821;
+  --panel-2:   #1a1f2a;
+  --line:      #232935;
+  --line-soft: #1b202a;
+
+  --ink:       #eceadf;
+  --ink-soft:  #c3c4bf;
+  --dim:       #8e93a0;
+
+  --ember:     #e0763a;
+  --accent:    var(--ember);
+
+  --green:     #5ea67d;
+  --red:       #c05a5c;
+
+  /* Single source of truth for page width. Nav, content wrappers and the market
+     page shell all use this so their edges line up. */
+  --page: 1560px;
+  --gutter: 28px;
+
+  /* Nav height, as a token because three sticky elements are positioned off
+     it. They were carrying 84px and 70px as literals -- 46 + 38 and 46 + 24
+     worked out by hand -- so resizing the wordmark silently pushed the graph
+     pane and the methodology contents list under the bar. */
+  --nav-h: 52px;
+  --nav-sub-h: 38px;
+
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans:  "Archivo", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (max-width: 620px) {
+  :root { --nav-h: 48px; }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* A faint warm lift at the top keeps the page from reading as a flat black box. */
+  background-image: radial-gradient(120% 70% at 50% -10%, #151a24 0%, var(--bg) 62%);
+  background-attachment: fixed;
+}
+
+a { color: var(--ember); }
+
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter); }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 0 0 14px;
+}
+
+h1, h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -.005em;
+}
+h1 { font-size: clamp(34px, 4.4vw, 56px); line-height: 1.04; margin: 0 0 16px; }
+h2 { font-size: 26px; line-height: 1.16; margin: 0 0 12px; }
+
+.lede {
+  font-size: 18.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+::selection { background: var(--ember); color: #14100c; }
+
+:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; border-radius: 3px; }
+
+@media (max-width: 700px) { :root { --gutter: 18px; } }

@@ -1,0 +1,184 @@
+---
+import fs from 'node:fs'
+import Head from '../components/Head.astro'
+import MetroHero from '../components/MetroHero.astro'
+import Nav from '../components/Nav.astro'
+import Footer from '../components/Footer.astro'
+import { CITIES, PUBLISH_TIER, allMarkets, readMarket, labelFor } from '../lib/markets.js'
+import '../styles/global.css'
+
+const markets = allMarkets().map((m) => ({ ...m, data: readMarket(m.tag) }))
+const metro = JSON.parse(fs.readFileSync('data/graphs/_metro.json', 'utf8'))
+const totalShared = markets.reduce((a, m) => a + m.data.totalShared, 0)
+const sc = markets.reduce((a, m) => {
+  const s = m.data.sourceCounts ?? {}
+  return { maps: a.maps + (s.maps ?? 0), organic: a.organic + (s.organic ?? 0), both: a.both + (s.both ?? 0) }
+}, { maps: 0, organic: 0, both: 0 })
+const overlapPct = Math.round((sc.both / (sc.maps + sc.organic - sc.both)) * 100)
+
+const industries = [...new Set(markets.map((m) => m.industry))]
+  .sort((a, b) => {
+    const ai = PUBLISH_TIER.indexOf(a), bi = PUBLISH_TIER.indexOf(b)
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi)
+  })
+
+const TITLE = 'The DFW link graph: which domains confer local authority'
+const DESCRIPTION = `We mapped ${markets.length} local markets across Dallas and Fort Worth to find which domains actually connect them, and how little the map pack and organic results have in common.`
+
+/*
+ * A Dataset, not a WebSite. The page's value to a crawler is that it is a
+ * published measurement with a stated method and a coverage area — the
+ * vocabulary that describes a research artifact, not a homepage. `WebSite`
+ * here would be a truthful but empty claim.
+ */
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Dataset',
+  name: 'The DFW link graph',
+  description: DESCRIPTION,
+  url: new URL('/', Astro.site).href,
+  creator: { '@type': 'Organization', name: 'DFW SEO', url: new URL('/', Astro.site).href },
+  spatialCoverage: { '@type': 'Place', name: 'Dallas-Fort Worth metroplex, Texas' },
+  measurementTechnique: 'Referring-domain intersection across map pack and organic search results',
+  isAccessibleForFree: true,
+}
+---
+<html lang="en">
+<head>
+  <Head title={TITLE} description={DESCRIPTION} schema={schema} />
+</head>
+<body>
+  <Nav />
+
+  <section class="hero">
+    <MetroHero />
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">Dallas &amp; Fort Worth · {markets.length} markets · {totalShared.toLocaleString()} shared referring domains</p>
+        <h1>The DFW link graph</h1>
+        <p class="lede">For each market we take the companies at the top of Google's map pack and
+        organic results, then map every domain linking to two or more of them.{' '}
+        <strong>Only {overlapPct}% appear at the top of both.</strong> Winning the map pack and
+        winning organic are two different games.</p>
+        <p class="hero-links">
+          <a href="#markets">Every market we mapped</a>
+          <a href="/methodology">How this was built</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap findings">
+    <div class="finding">
+      <b class="mono">{overlapPct}%</b>
+      <p>of the businesses we sampled appear at the top of <strong>both</strong> the map pack and organic results. In dentistry the overlap is zero, in both cities.</p>
+    </div>
+    <div class="finding">
+      <b class="mono">63–82%</b>
+      <p>of every market's shared referring domains <strong>score zero</strong> on the third-party authority metric we use. A vendor estimate, not a verdict, but it held in all {markets.length} markets.</p>
+    </div>
+    <div class="finding">
+      <b class="mono">{metro.dfwBridges}</b>
+      <p>domains bridge two or more industries <em>and</em> carry a DFW identity, out of {metro.bridgeCount} bridges. The rest are national platforms.</p>
+    </div>
+  </section>
+
+  <section class="wrap grid-section" id="markets">
+    <h2>Every market we mapped</h2>
+    <p class="sub">Dallas and Fort Worth are separate link markets: they share only 2 of 10 ranking companies.
+    Markets were chosen on <a href="/industries">measured search value</a>, not assumption.</p>
+    <div class="table-wrap">
+      <table class="markets">
+        <thead>
+          <tr><th>Industry</th>{CITIES.map((c) => <th class="num">{c.name}</th>)}</tr>
+        </thead>
+        <tbody>
+          {industries.map((ind) => (
+            <tr>
+              <th class="ind">
+                {labelFor(ind)}
+                {!PUBLISH_TIER.includes(ind) && <>{' '}<em>data only</em></>}
+              </th>
+              {CITIES.map((c) => {
+                const m = markets.find((x) => x.city === c.key && x.industry === ind)
+                return (
+                  <td class="num">
+                    {m ? (
+                      <a href={`/${c.key}/${ind}`}>
+                        <span class="mono n">{m.data.totalShared.toLocaleString()}</span>
+                        <span class="shape" data-shape={m.data.shape}>{m.data.shape}</span>
+                      </a>
+                    ) : <span class="none">-</span>}
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <Footer />
+</body>
+</html>
+
+<style>
+  /* The graph is the hero's background, not a panel beside it: it fills the
+     whole band edge to edge and the copy sits on top of it. The band owns the
+     height so the canvas has something to measure. */
+  /* One full-width column, explicitly: an implicit `auto` track sizes to
+     max-content, which lets .wrap's `margin: 0 auto` centre the copy instead
+     of pinning it to the page gutter the nav and the tables below it use. */
+  .hero { position: relative; isolation: isolate; overflow: hidden;
+    min-height: clamp(560px, 78vh, 780px); display: grid; grid-template-columns: minmax(0, 1fr);
+    align-items: center; padding: 40px 0 46px; }
+  /* .wrap carries `margin: 0 auto`, and auto margins on a grid item make it
+     shrink to fit and centre rather than stretch -- which floated the copy in
+     the middle of the band instead of on the page gutter. An explicit width
+     leaves the auto margins nothing to absorb. */
+  .hero-inner { width: 100%; position: relative; z-index: 5; pointer-events: none; }
+  .hero-copy { max-width: 47ch; }
+  .hero-copy a { pointer-events: auto; }
+  .hero h1 { font-size: clamp(40px, 4.6vw, 62px); margin-bottom: 18px; }
+  .hero-copy .lede { font-size: 19px; }
+  .hero-copy strong { color: var(--ink); font-weight: 500; }
+  .hero-links { display: flex; gap: 20px; margin: 22px 0 0; font-size: 13.5px; }
+  .hero-links a { text-decoration: none; border-bottom: 1px solid #4a2f1f; padding-bottom: 2px; }
+  .hero-links a:hover { border-bottom-color: var(--ember); }
+
+  .findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; padding: 10px 28px 52px; }
+  .finding b { display: block; font-family: var(--serif); font-size: 52px; line-height: .95; color: var(--ember); margin-bottom: 12px; font-weight: 400; }
+  .finding p { margin: 0; color: var(--dim); font-size: 14.5px; text-wrap: pretty; max-width: 44ch; }
+  .finding strong { color: var(--ink); font-weight: 500; }
+
+  .grid-section { padding: 46px 28px 20px; border-top: 1px solid var(--line); }
+  .sub { color: var(--dim); font-size: 14px; margin: 0 0 26px; }
+  .table-wrap { overflow-x: auto; }
+  .markets { width: 100%; border-collapse: collapse; }
+  .markets thead th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--dim); font-weight: 400; text-align: left;
+    padding: 0 14px 10px; border-bottom: 1px solid var(--line); }
+  .markets thead th.num { text-align: right; }
+  .markets .ind { text-align: left; font-weight: 400; font-size: 15px; padding: 12px 14px;
+    border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  .markets .ind em { font-style: normal; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin-left: 9px;
+    border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; }
+  .markets td { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); text-align: right; }
+  .markets td a { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; text-decoration: none; }
+  .markets td a:hover .n { color: var(--ember); }
+  .markets .n { font-size: 15px; color: var(--ink); }
+  .markets .shape { font-family: var(--mono); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
+  .markets .shape[data-shape="mesh"] { color: var(--red); }
+  .markets .shape[data-shape="pockets"] { color: #6d9dc9; }
+  .markets .shape[data-shape="hub-dominated"] { color: var(--green); }
+  .markets .none { color: #3d4350; }
+
+
+  @media (max-width: 900px) {
+    /* Copy at the top, card pinned to the bottom of the band, graph behind
+       both -- see MetroHero's own breakpoint. */
+    .hero { min-height: 820px; align-items: start; padding: 30px 0 34px; }
+    .hero-copy { max-width: none; }
+  }
+</style>

@@ -1,0 +1,16 @@
+# Graph artifacts and OG cards are content-addressed by market name and only
+# change on a refresh, so they can be cached hard at the edge.
+/graphs/*
+  Cache-Control: public, max-age=3600, s-maxage=86400
+/og/*
+  Cache-Control: public, max-age=86400, s-maxage=604800
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+# Self-hosted font subsets. Not fingerprinted by the build, so the filename is
+# the cache key: replacing a face means giving the new file a new name.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

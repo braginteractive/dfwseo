@@ -1,0 +1,78 @@
+---
+import { CITIES, PUBLISH_TIER, allMarkets, labelFor } from '../lib/markets.js'
+const { city, industry } = Astro.props
+const markets = allMarkets()
+const industries = [...new Set(markets.map((m) => m.industry))]
+  .sort((a, b) => {
+    const ai = PUBLISH_TIER.indexOf(a), bi = PUBLISH_TIER.indexOf(b)
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi)
+  })
+const has = (c, i) => markets.some((m) => m.city === c && m.industry === i)
+---
+<nav class="nav">
+  <div class="row">
+    <a href="/" class="brand">DFW<span>SEO</span></a>
+    <div class="cities">
+      {CITIES.map((c) => (
+        <a href={industry && has(c.key, industry) ? `/${c.key}/${industry}` : `/${c.key}`}
+           class={c.key === city ? 'on' : ''}>{c.name}</a>
+      ))}
+    </div>
+    <div class="right">
+      <a href="/industries">Market value</a>
+      <a href="/methodology">Methodology</a>
+    </div>
+  </div>
+  {city && (
+    <div class="row industries">
+      {industries.filter((i) => has(city, i)).map((i) => (
+        <a href={`/${city}/${i}`} class={i === industry ? 'on' : ''}>{labelFor(i)}</a>
+      ))}
+    </div>
+  )}
+</nav>
+
+<style>
+  .nav { border-bottom: 1px solid var(--line); background: rgba(12,14,19,.9);
+    backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 40; }
+  .row { max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter); display: flex; align-items: center; gap: 18px; height: var(--nav-h); }
+  .industries { height: var(--nav-sub-h); border-top: 1px solid var(--line-soft); gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .industries::-webkit-scrollbar { display: none; }
+  /* The wordmark sat at 14px among 12.5-13px links: technically the largest
+     thing in the bar, and still reading as one more nav item. Size is most of
+     the fix; the negative tracking is the rest, because mono at this size
+     sprawls and a sprawling lockup reads as a label rather than a mark. */
+  .brand { font-family: var(--mono); font-weight: 500; color: var(--ink); text-decoration: none;
+    font-size: 20px; letter-spacing: -.015em; line-height: 1; flex: none; }
+  .brand span { color: var(--ember); }
+  .cities { display: flex; gap: 4px; }
+  .cities a { color: var(--dim); text-decoration: none; font-size: 13px; padding: 5px 11px;
+    border-radius: 6px; white-space: nowrap; }
+  .cities a:hover { color: var(--ink); background: var(--panel-2); }
+  .cities a.on { color: var(--ink); background: var(--panel-2); }
+  .right { margin-left: auto; display: flex; gap: 14px; }
+  .right a { color: var(--dim); text-decoration: none; font-size: 12.5px; white-space: nowrap; }
+  @media (max-width: 620px) {
+    /* Measured in the browser, not estimated: brand 60px, cities 125px, links
+       142px. A bigger wordmark spends 14px of a bar that was already tight, so
+       the nav buys the room back from its own padding and gaps rather than
+       shrinking --gutter for every page. That moves the point where the bar
+       stops fitting from 402px to 374px -- better than the 388px it managed
+       before the wordmark grew at all.
+
+       374px still leaves 360px phones short, so the row scrolls rather than
+       clips, the same way the industries row below it does. Nothing in here
+       can become unreachable, whatever a future label is called. */
+    .row { gap: 8px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+    .row::-webkit-scrollbar { display: none; }
+    .right { gap: 10px; }
+    .cities a { font-size: 12px; padding: 4px 8px; }
+    .right a { font-size: 11.5px; }
+    .brand { font-size: 17px; }
+  }
+  .right a:hover { color: var(--ink); }
+  .industries a { color: var(--dim); text-decoration: none; font-size: 12px; padding: 4px 9px;
+    border-radius: 5px; white-space: nowrap; }
+  .industries a:hover { color: var(--ink); background: var(--panel-2); }
+  .industries a.on { color: var(--ember); background: #241a13; }
+</style>

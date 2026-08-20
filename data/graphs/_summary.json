@@ -1,0 +1,982 @@
+[
+  {
+    "market": "dallas-dental",
+    "city": "dallas",
+    "industry": "dental",
+    "keyword": "dentist",
+    "volume": 5400,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 11,
+      "both": 0
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 146,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 99,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 158,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-dental-ortho",
+    "city": "dallas",
+    "industry": "dental-ortho",
+    "keyword": "invisalign",
+    "volume": 2400,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 16,
+      "both": 0
+    },
+    "shape": "scattered",
+    "communities": 5,
+    "totalShared": 129,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 7,
+      "rank": 52,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 141,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-electrical",
+    "city": "dallas",
+    "industry": "electrical",
+    "keyword": "electrician",
+    "volume": 1900,
+    "sourceCounts": {
+      "maps": 11,
+      "organic": 14,
+      "both": 2
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 293,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 92,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 305,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-fencing",
+    "city": "dallas",
+    "industry": "fencing",
+    "keyword": "fence installation",
+    "volume": 170,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 20,
+      "both": 3
+    },
+    "shape": "scattered",
+    "communities": 5,
+    "totalShared": 118,
+    "topConnector": {
+      "domain": "united-local.com",
+      "degree": 9,
+      "rank": 112,
+      "spam": 0,
+      "tags": [
+        "platform"
+      ]
+    },
+    "nodes": 130,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-foundation-repair",
+    "city": "dallas",
+    "industry": "foundation-repair",
+    "keyword": "foundation repair",
+    "volume": 720,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 21,
+      "both": 4
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 312,
+    "topConnector": {
+      "domain": "concreteworks.io",
+      "degree": 10,
+      "rank": 130,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 324,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-garage-doors",
+    "city": "dallas",
+    "industry": "garage-doors",
+    "keyword": "garage door repair",
+    "volume": 1600,
+    "sourceCounts": {
+      "maps": 11,
+      "organic": 20,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 282,
+    "topConnector": {
+      "domain": "improuse.com",
+      "degree": 8,
+      "rank": 85,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 294,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-hvac",
+    "city": "dallas",
+    "industry": "hvac",
+    "keyword": "ac repair",
+    "volume": 2900,
+    "sourceCounts": {
+      "maps": 13,
+      "organic": 20,
+      "both": 2
+    },
+    "shape": "scattered",
+    "communities": 5,
+    "totalShared": 270,
+    "topConnector": {
+      "domain": "emergencyacrepairnow.com",
+      "degree": 9,
+      "rank": 79,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 281,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-insurance-agency",
+    "city": "dallas",
+    "industry": "insurance-agency",
+    "keyword": "insurance agency",
+    "volume": 320,
+    "sourceCounts": {
+      "maps": 17,
+      "organic": 24,
+      "both": 0
+    },
+    "shape": "scattered",
+    "communities": 4,
+    "totalShared": 188,
+    "topConnector": {
+      "domain": "beforeinsuranceusa.com",
+      "degree": 9,
+      "rank": 268,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 200,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-landscaping",
+    "city": "dallas",
+    "industry": "landscaping",
+    "keyword": "landscaper",
+    "volume": 590,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 13,
+      "both": 1
+    },
+    "shape": "hub-dominated",
+    "communities": 6,
+    "totalShared": 85,
+    "topConnector": {
+      "domain": "tx24h.com",
+      "degree": 9,
+      "rank": 23,
+      "spam": 0,
+      "tags": [
+        "dfw"
+      ]
+    },
+    "nodes": 97,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-legal-criminal",
+    "city": "dallas",
+    "industry": "legal-criminal",
+    "keyword": "criminal defense lawyer",
+    "volume": 880,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 21,
+      "both": 7
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 269,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 130,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 281,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-legal-family",
+    "city": "dallas",
+    "industry": "legal-family",
+    "keyword": "divorce lawyer",
+    "volume": 1300,
+    "sourceCounts": {
+      "maps": 18,
+      "organic": 16,
+      "both": 4
+    },
+    "shape": "pockets",
+    "communities": 8,
+    "totalShared": 199,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 11,
+      "rank": 135,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 211,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-legal-personal-injury",
+    "city": "dallas",
+    "industry": "legal-personal-injury",
+    "keyword": "personal injury lawyer",
+    "volume": 1300,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 25,
+      "both": 6
+    },
+    "shape": "pockets",
+    "communities": 7,
+    "totalShared": 886,
+    "topConnector": {
+      "domain": "justia.com",
+      "degree": 12,
+      "rank": 161,
+      "spam": 3,
+      "tags": []
+    },
+    "nodes": 898,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-med-spa",
+    "city": "dallas",
+    "industry": "med-spa",
+    "keyword": "med spa",
+    "volume": 1000,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 27,
+      "both": 3
+    },
+    "shape": "pockets",
+    "communities": 8,
+    "totalShared": 180,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 11,
+      "rank": 95,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 192,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-moving",
+    "city": "dallas",
+    "industry": "moving",
+    "keyword": "moving company",
+    "volume": 1600,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 16,
+      "both": 1
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 597,
+    "topConnector": {
+      "domain": "usacityyp.com",
+      "degree": 11,
+      "rank": 99,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 608,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-painting",
+    "city": "dallas",
+    "industry": "painting",
+    "keyword": "painting contractor",
+    "volume": 110,
+    "sourceCounts": {
+      "maps": 18,
+      "organic": 16,
+      "both": 3
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 517,
+    "topConnector": {
+      "domain": "realreviews.org",
+      "degree": 11,
+      "rank": 116,
+      "spam": 5,
+      "tags": []
+    },
+    "nodes": 529,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-pest-control",
+    "city": "dallas",
+    "industry": "pest-control",
+    "keyword": "pest control",
+    "volume": 1300,
+    "sourceCounts": {
+      "maps": 15,
+      "organic": 10,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 182,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 7,
+      "rank": 144,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 194,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-plumbing",
+    "city": "dallas",
+    "industry": "plumbing",
+    "keyword": "plumber",
+    "volume": 3600,
+    "sourceCounts": {
+      "maps": 17,
+      "organic": 15,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 773,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 207,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 785,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-pools",
+    "city": "dallas",
+    "industry": "pools",
+    "keyword": "pool contractor",
+    "volume": 260,
+    "sourceCounts": {
+      "maps": 17,
+      "organic": 22,
+      "both": 4
+    },
+    "shape": "pockets",
+    "communities": 7,
+    "totalShared": 220,
+    "topConnector": {
+      "domain": "united-local.com",
+      "degree": 9,
+      "rank": 157,
+      "spam": 0,
+      "tags": [
+        "platform"
+      ]
+    },
+    "nodes": 232,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-remodeling",
+    "city": "dallas",
+    "industry": "remodeling",
+    "keyword": "home remodeling",
+    "volume": 210,
+    "sourceCounts": {
+      "maps": 17,
+      "organic": 18,
+      "both": 4
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 219,
+    "topConnector": {
+      "domain": "howtohome.co",
+      "degree": 9,
+      "rank": 96,
+      "spam": 10,
+      "tags": []
+    },
+    "nodes": 231,
+    "competitors": 12
+  },
+  {
+    "market": "dallas-roofing",
+    "city": "dallas",
+    "industry": "roofing",
+    "keyword": "roofing contractor",
+    "volume": 880,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 16,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 204,
+    "topConnector": {
+      "domain": "therooferlist.com",
+      "degree": 12,
+      "rank": 51,
+      "spam": 0,
+      "tags": [
+        "trade"
+      ]
+    },
+    "nodes": 216,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-dental",
+    "city": "fort-worth",
+    "industry": "dental",
+    "keyword": "dentist",
+    "volume": 4400,
+    "sourceCounts": {
+      "maps": 15,
+      "organic": 12,
+      "both": 0
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 209,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 139,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 221,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-dental-ortho",
+    "city": "fort-worth",
+    "industry": "dental-ortho",
+    "keyword": "invisalign",
+    "volume": 1300,
+    "sourceCounts": {
+      "maps": 16,
+      "organic": 8,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 216,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 10,
+      "rank": 136,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 228,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-electrical",
+    "city": "fort-worth",
+    "industry": "electrical",
+    "keyword": "electrician",
+    "volume": 1900,
+    "sourceCounts": {
+      "maps": 12,
+      "organic": 10,
+      "both": 1
+    },
+    "shape": "scattered",
+    "communities": 3,
+    "totalShared": 228,
+    "topConnector": {
+      "domain": "dfwprofessionals.com",
+      "degree": 8,
+      "rank": 124,
+      "spam": 5,
+      "tags": [
+        "dfw"
+      ]
+    },
+    "nodes": 240,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-fencing",
+    "city": "fort-worth",
+    "industry": "fencing",
+    "keyword": "fence company",
+    "volume": 90,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 18,
+      "both": 7
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 166,
+    "topConnector": {
+      "domain": "united-local.com",
+      "degree": 8,
+      "rank": 102,
+      "spam": 0,
+      "tags": [
+        "platform"
+      ]
+    },
+    "nodes": 178,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-foundation-repair",
+    "city": "fort-worth",
+    "industry": "foundation-repair",
+    "keyword": "foundation repair",
+    "volume": 590,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 18,
+      "both": 1
+    },
+    "shape": "hub-dominated",
+    "communities": 3,
+    "totalShared": 122,
+    "topConnector": {
+      "domain": "concreteworks.io",
+      "degree": 9,
+      "rank": 79,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 134,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-garage-doors",
+    "city": "fort-worth",
+    "industry": "garage-doors",
+    "keyword": "garage door repair",
+    "volume": 720,
+    "sourceCounts": {
+      "maps": 16,
+      "organic": 16,
+      "both": 3
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 599,
+    "topConnector": {
+      "domain": "prosgrade.com",
+      "degree": 10,
+      "rank": 169,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 611,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-hvac",
+    "city": "fort-worth",
+    "industry": "hvac",
+    "keyword": "ac repair",
+    "volume": 1600,
+    "sourceCounts": {
+      "maps": 12,
+      "organic": 20,
+      "both": 2
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 204,
+    "topConnector": {
+      "domain": "ratingsnearme.com",
+      "degree": 8,
+      "rank": 12,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 216,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-insurance-agency",
+    "city": "fort-worth",
+    "industry": "insurance-agency",
+    "keyword": "insurance agency",
+    "volume": 210,
+    "sourceCounts": {
+      "maps": 13,
+      "organic": 18,
+      "both": 1
+    },
+    "shape": "hub-dominated",
+    "communities": 5,
+    "totalShared": 169,
+    "topConnector": {
+      "domain": "beforeinsuranceusa.com",
+      "degree": 11,
+      "rank": 268,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 181,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-landscaping",
+    "city": "fort-worth",
+    "industry": "landscaping",
+    "keyword": "landscaper",
+    "volume": 590,
+    "sourceCounts": {
+      "maps": 16,
+      "organic": 13,
+      "both": 2
+    },
+    "shape": "scattered",
+    "communities": 5,
+    "totalShared": 116,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 6,
+      "rank": 156,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 128,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-legal-criminal",
+    "city": "fort-worth",
+    "industry": "legal-criminal",
+    "keyword": "criminal defense lawyer",
+    "volume": 480,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 19,
+      "both": 5
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 510,
+    "topConnector": {
+      "domain": "texasbar.com",
+      "degree": 12,
+      "rank": 37,
+      "spam": 0,
+      "tags": [
+        "dfw"
+      ]
+    },
+    "nodes": 522,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-legal-family",
+    "city": "fort-worth",
+    "industry": "legal-family",
+    "keyword": "family law attorney",
+    "volume": 880,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 19,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 3,
+    "totalShared": 564,
+    "topConnector": {
+      "domain": "juridipedia.com",
+      "degree": 10,
+      "rank": 46,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 576,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-legal-personal-injury",
+    "city": "fort-worth",
+    "industry": "legal-personal-injury",
+    "keyword": "personal injury lawyer",
+    "volume": 590,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 19,
+      "both": 4
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 961,
+    "topConnector": {
+      "domain": "lantern.llc",
+      "degree": 11,
+      "rank": 147,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 973,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-med-spa",
+    "city": "fort-worth",
+    "industry": "med-spa",
+    "keyword": "med spa",
+    "volume": 720,
+    "sourceCounts": {
+      "maps": 19,
+      "organic": 26,
+      "both": 2
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 181,
+    "topConnector": {
+      "domain": "findhealthclinics.com",
+      "degree": 9,
+      "rank": 81,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 193,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-moving",
+    "city": "fort-worth",
+    "industry": "moving",
+    "keyword": "moving company",
+    "volume": 880,
+    "sourceCounts": {
+      "maps": 18,
+      "organic": 10,
+      "both": 3
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 388,
+    "topConnector": {
+      "domain": "prosgrade.com",
+      "degree": 10,
+      "rank": 197,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 400,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-painting",
+    "city": "fort-worth",
+    "industry": "painting",
+    "keyword": "painting company",
+    "volume": 170,
+    "sourceCounts": {
+      "maps": 16,
+      "organic": 18,
+      "both": 3
+    },
+    "shape": "mesh",
+    "communities": 4,
+    "totalShared": 227,
+    "topConnector": {
+      "domain": "realreviews.org",
+      "degree": 10,
+      "rank": 116,
+      "spam": 5,
+      "tags": []
+    },
+    "nodes": 239,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-pest-control",
+    "city": "fort-worth",
+    "industry": "pest-control",
+    "keyword": "pest control",
+    "volume": 1000,
+    "sourceCounts": {
+      "maps": 17,
+      "organic": 7,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 797,
+    "topConnector": {
+      "domain": "dfwprofessionals.com",
+      "degree": 8,
+      "rank": 96,
+      "spam": 5,
+      "tags": [
+        "dfw"
+      ]
+    },
+    "nodes": 809,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-plumbing",
+    "city": "fort-worth",
+    "industry": "plumbing",
+    "keyword": "plumber",
+    "volume": 2900,
+    "sourceCounts": {
+      "maps": 16,
+      "organic": 17,
+      "both": 2
+    },
+    "shape": "pockets",
+    "communities": 6,
+    "totalShared": 320,
+    "topConnector": {
+      "domain": "dfwhomefixpros.com",
+      "degree": 9,
+      "rank": 57,
+      "spam": 0,
+      "tags": [
+        "dfw"
+      ]
+    },
+    "nodes": 332,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-pools",
+    "city": "fort-worth",
+    "industry": "pools",
+    "keyword": "pool contractor",
+    "volume": 90,
+    "sourceCounts": {
+      "maps": 20,
+      "organic": 20,
+      "both": 7
+    },
+    "shape": "scattered",
+    "communities": 3,
+    "totalShared": 244,
+    "topConnector": {
+      "domain": "lyonfinancial.net",
+      "degree": 10,
+      "rank": 5,
+      "spam": 0,
+      "tags": []
+    },
+    "nodes": 255,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-remodeling",
+    "city": "fort-worth",
+    "industry": "remodeling",
+    "keyword": "home renovation",
+    "volume": 210,
+    "sourceCounts": {
+      "maps": 15,
+      "organic": 16,
+      "both": 3
+    },
+    "shape": "scattered",
+    "communities": 5,
+    "totalShared": 102,
+    "topConnector": {
+      "domain": "howtohome.co",
+      "degree": 9,
+      "rank": 79,
+      "spam": 10,
+      "tags": []
+    },
+    "nodes": 114,
+    "competitors": 12
+  },
+  {
+    "market": "fort-worth-roofing",
+    "city": "fort-worth",
+    "industry": "roofing",
+    "keyword": "roofing company",
+    "volume": 390,
+    "sourceCounts": {
+      "maps": 15,
+      "organic": 17,
+      "both": 1
+    },
+    "shape": "mesh",
+    "communities": 5,
+    "totalShared": 148,
+    "topConnector": {
+      "domain": "therooferlist.com",
+      "degree": 10,
+      "rank": 51,
+      "spam": 0,
+      "tags": [
+        "trade"
+      ]
+    },
+    "nodes": 160,
+    "competitors": 12
+  }
+]

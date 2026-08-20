@@ -1,0 +1,39 @@
+---
+/*
+ * Analytics, kept out of the repository.
+ *
+ * The measurement ID comes from PUBLIC_GA_ID at build time, set in the
+ * Cloudflare Pages dashboard rather than committed. Two reasons, and the
+ * second is the one that matters:
+ *
+ *   1. A GA4 measurement ID is not really a secret. It ships in the page source
+ *      of every site that uses GA and anyone can read it with view-source.
+ *   2. But if this repository is public, a fork that inherits a committed ID
+ *      sends its traffic into OUR property and pollutes the data. An env var
+ *      means a fork simply has no analytics until its owner sets their own.
+ *
+ * When the variable is unset, nothing is emitted at all: no script tag, no
+ * preconnect, no cookie. Local dev and forks stay clean by default.
+ */
+const gaId = import.meta.env.PUBLIC_GA_ID
+const cfToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN
+---
+{gaId && (
+  <>
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+    <script is:inline define:vars={{ gaId }}>
+      window.dataLayer = window.dataLayer || []
+      function gtag() { dataLayer.push(arguments) }
+      gtag('js', new Date())
+      // No ad features, and IP anonymization is on by default in GA4. This site
+      // has no accounts and collects nothing, so there is nothing to enrich.
+      gtag('config', gaId, { anonymize_ip: true, allow_google_signals: false })
+    </script>
+  </>
+)}
+
+{cfToken && (
+  <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon={`{"token": "${cfToken}"}`}></script>
+)}

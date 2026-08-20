@@ -1,0 +1,265 @@
+---
+import Head from '../../components/Head.astro'
+import LinkGraph from '../../components/LinkGraph.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { ANALYSIS } from '../../lib/analysis.js'
+import { allMarkets, readMarket, headline, labelFor, labelLower, sourceOf, slugOf, SHAPE_NOTE, CITIES } from '../../lib/markets.js'
+import '../../styles/global.css'
+
+export function getStaticPaths() {
+  return allMarkets().map((m) => ({ params: { city: m.city, industry: m.industry } }))
+}
+
+const { city, industry } = Astro.params
+const tag = `${city}-${industry}`
+const data = readMarket(tag)
+const a = ANALYSIS[tag]
+const cityName = CITIES.find((c) => c.key === city).name
+const label = labelFor(industry)
+const labelMid = labelLower(industry)
+const totalTiered = Object.values(data.tierCounts).reduce((x, y) => x + y, 0)
+const deadPct = Math.round((data.tierCounts.unranked / totalTiered) * 100)
+const sc = data.sourceCounts ?? { maps: 0, organic: 0, both: 0 }
+
+// Counterpart market in the other city, if it exists.
+const otherCity = CITIES.find((c) => c.key !== city)
+const counterpart = allMarkets().find((m) => m.city === otherCity.key && m.industry === industry)
+const other = counterpart ? readMarket(counterpart.tag) : null
+
+const sections = a?.sections ?? [
+  { h: `${data.competitors.length} companies, two different lists`, focus: { focus: 'competitors' },
+    body: `<p>We sample the top of each list: ${sc.maps} businesses from the map pack and ${sc.organic} from organic. Both lists run deeper than that; these are the ones we examined.</p>
+           <p>${sc.both === 0 ? '<strong>None</strong> appear in both samples.' : `Only <strong>${sc.both}</strong> appear in both samples.`}</p>
+           <p>Between them they share <strong>${data.totalShared}</strong> referring domains.</p>` },
+  { h: 'Most of it scores zero', focus: { focus: 'tier', tier: 'unranked' },
+    body: `<p><strong>${deadPct}%</strong> of the shared set scores zero on the third-party authority metric we use.</p>
+           <p>That is a vendor estimate, not a fact about Google. Vendors disagree with each other, and a link scoring zero may still do something we cannot see. What we can say is that these domains are not what separates the companies here from each other.</p>` },
+  { h: 'What actually connects the market', focus: { focus: 'connectors', n: 8 },
+    body: `<p>The widest reach belongs to <span class="mono">${data.leaderboard[0]?.domain}</span>, linking to ${data.leaderboard[0]?.degree} of ${data.competitors.length}.</p>` },
+]
+const attrsFor = (f) => Object.fromEntries(Object.entries(f).map(([k, v]) => [
+  k === 'focus' ? 'data-focus' : 'data-' + k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase()), String(v)]))
+const SRC_LABEL = { both: 'both', maps: 'map pack', organic: 'organic' }
+
+/*
+ * Title and description are built here rather than in the markup so the same
+ * strings can feed the JSON-LD below. A page whose structured data disagrees
+ * with its own title invites Google to trust neither.
+ *
+ * The hand-written analysis wins when it exists: `a.title` is a claim about
+ * that specific market and it earns the SERP line over a template. The
+ * fallback stays templated but leads with city and industry, because that is
+ * the query these pages are answerable for.
+ */
+const TITLE = `${a?.title ?? `${cityName} ${labelMid}: the link graph`} · DFW SEO`
+/*
+ * The shape note is authored as a clause for use mid-sentence on the page
+ * ("pockets: separate groups, no shared center"), so it needs a capital and a
+ * stop before it can end a meta description. Left raw it renders in the SERP
+ * as "...no measurable authority. densely cross-linked, no hierarchy".
+ */
+const shapeNote = SHAPE_NOTE[data.shape]
+const DESCRIPTION =
+  a?.description ??
+  [
+    `${deadPct}% of the referring domains shared across ${cityName} ${labelMid} companies score zero on third-party authority metrics.`,
+    shapeNote ? `${headline(shapeNote)}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+/*
+ * Dataset again, plus a breadcrumb. The breadcrumb is the one that surfaces in
+ * the SERP, and it is the only place the city tier is stated as structure
+ * rather than left to be inferred from the URL.
+ */
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: `${cityName} ${labelMid}: shared referring domains`,
+    description: DESCRIPTION,
+    url: new URL(`/${city}/${industry}/`, Astro.site).href,
+    creator: { '@type': 'Organization', name: 'DFW SEO', url: new URL('/', Astro.site).href },
+    spatialCoverage: { '@type': 'Place', name: `${cityName}, Texas` },
+    variableMeasured: 'Referring domains shared by two or more competitors ranking for the market keyword',
+    measurementTechnique: 'Referring-domain intersection across map pack and organic search results',
+    isAccessibleForFree: true,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DFW link graph', item: new URL('/', Astro.site).href },
+      { '@type': 'ListItem', position: 2, name: cityName, item: new URL(`/${city}/`, Astro.site).href },
+      { '@type': 'ListItem', position: 3, name: label },
+    ],
+  },
+]
+---
+<html lang="en">
+<head>
+  <Head title={TITLE} description={DESCRIPTION} card={tag} schema={schema} />
+</head>
+<body>
+  <Nav city={city} industry={industry} />
+
+  <div class="shell">
+    <aside class="pane-graph"><LinkGraph market={tag} /></aside>
+
+    <main class="pane-read">
+      <header class="block">
+        <p class="eyebrow">{cityName} · {label} · "{data.keyword}"</p>
+        <h1>{a?.title ?? `Who holds the links in ${cityName} ${labelMid}`}</h1>
+        <p class="lede">{a?.lede ?? `${data.competitors.length} ${cityName} businesses, drawn from Google's map pack and organic results, share ${data.totalShared} referring domains. Here is what is in that set.`}</p>
+        <ul class="facts">
+          <li><b class="mono">{data.competitors.length}</b><span>companies mapped</span></li>
+          <li><b class="mono">{data.totalShared.toLocaleString()}</b><span>shared referring domains</span></li>
+          <li><b class="mono">{deadPct}%</b><span>score zero on rank</span></li>
+          <li><b class="mono">{sc.both}</b><span>in map pack <em>and</em> organic</span></li>
+          <li><b>{data.shape}</b><span>{SHAPE_NOTE[data.shape]}</span></li>
+        </ul>
+      </header>
+
+      {sections.map((sec) => (
+        <article class="beat" {...attrsFor(sec.focus)}>
+          <h2>{sec.h}</h2>
+          <Fragment set:html={sec.body} />
+        </article>
+      ))}
+
+      <section class="block">
+        <h2>The companies</h2>
+        <p class="sub">Where each one came from, within the top of each list that we sampled. <em>Both</em> means locally verified and organically competitive, the strongest signal in the data. The map pack is proximity-weighted toward the city center; organic is not.</p>
+        <table class="board">
+          <thead><tr><th>Company</th><th>Source</th><th class="num">Reviews</th><th class="num">Organic</th></tr></thead>
+          <tbody>
+            {data.competitors.map((c) => (
+              <tr>
+                <td class="dom mono"><a href={`/${city}/${industry}/${slugOf(c.domain)}`}>{c.domain}</a></td>
+                <td><span class="src" data-s={sourceOf(c)}>{SRC_LABEL[sourceOf(c)]}</span></td>
+                <td class="num mono">{c.reviews ? c.reviews.toLocaleString() : '-'}</td>
+                <td class="num mono">{c.organicRank ? '#' + c.organicRank : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="block">
+        <h2>Every connector, ranked</h2>
+        <p class="sub">Sorted by how many of the {data.competitors.length} companies each one links to, which is a direct count rather than an estimate. Domains with no third-party rank score, and those flagged high-spam, are left out of this table but remain in the graph. <a href="/methodology">What these scores are</a>.</p>
+        <table class="board">
+          <thead><tr><th>Domain</th><th class="num">Reaches</th><th class="num">Rank</th><th class="num">Spam</th></tr></thead>
+          <tbody>
+            {data.leaderboard.slice(0, 25).map((r) => (
+              <tr>
+                <td class="dom">
+                  <span class="mono">{r.domain}</span>
+                  {r.tags.length > 0 && <span class="tags">{r.tags.map((t) => <em>{t}</em>)}</span>}
+                </td>
+                <td class="num mono"><span class="bar" style={`--w:${(r.degree / data.competitors.length).toFixed(3)}`}>{r.degree}</span></td>
+                <td class="num mono">{r.rank}</td>
+                <td class="num mono" data-hot={String(r.spam >= 15)}>{r.spam}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {other && (
+        <section class="block">
+          <h2>The same industry in {otherCity.name}</h2>
+          <p class="sub">Dallas and Fort Worth share only 2 of 10 ranking companies. They are separate link markets.</p>
+          <a class="cross" href={`/${otherCity.key}/${industry}`}>
+            <b>{otherCity.name} {labelMid}</b>
+            <span>{other.totalShared.toLocaleString()} shared referring domains · {other.shape} · top connector {other.leaderboard[0]?.domain ?? '-'}</span>
+          </a>
+        </section>
+      )}
+    </main>
+  </div>
+  <Footer />
+</body>
+</html>
+
+<style>
+  /* Same container token as the nav so their edges line up. */
+  .shell { max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 620px);
+    gap: 40px; align-items: start; }
+  .pane-graph { position: sticky; top: calc(var(--nav-h) + var(--nav-sub-h)); height: calc(100vh - var(--nav-h) - var(--nav-sub-h) - 16px); padding: 16px 0; }
+  .pane-read { padding: 0; min-width: 0; }
+  .block { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  .block:first-child { padding-top: 50px; }
+  .sub { color: var(--dim); font-size: 14px; margin: 0 0 20px; text-wrap: pretty; }
+  .sub em { color: var(--ink); font-style: normal; }
+
+  .facts { list-style: none; display: flex; flex-wrap: wrap; gap: 9px; padding: 0; margin: 26px 0 0; }
+  .facts li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 13px; display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 116px; }
+  .facts b { font-family: var(--serif); font-size: 26px; font-weight: 400; line-height: 1; }
+  .facts span { font-family: var(--mono); font-size: 10.5px; color: var(--dim); text-wrap: pretty; line-height: 1.35; }
+  .facts em { font-style: italic; }
+
+  .beat { padding: 9vh 0 9vh 22px; border-left: 2px solid var(--line); transition: border-color .25s ease; }
+  .beat.live { border-left-color: var(--ember); }
+  .beat h2 { font-size: 30px; }
+  .beat :global(p) { margin: 0 0 13px; text-wrap: pretty; }
+  .beat :global(p:last-child) { margin-bottom: 0; }
+  .beat :global(strong) { color: var(--ember); font-weight: 600; }
+  .beat :global(.mono) { font-family: var(--mono); font-size: .9em; color: var(--ink); overflow-wrap: anywhere; }
+
+  .board { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .board th { text-align: left; color: var(--dim); font-family: var(--mono); font-weight: 400;
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 0 10px 9px; border-bottom: 1px solid var(--line); }
+  .board td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  .board tr:hover td { background: var(--panel); }
+  .board .num { text-align: right; white-space: nowrap; }
+  .board .dom { color: var(--ink); overflow-wrap: anywhere; }
+  .board .dom a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .board .dom a:hover { color: var(--ember); border-color: var(--ember); }
+  .board td[data-hot="true"] { color: var(--red); }
+
+  .src { font-family: var(--mono); font-size: 10.5px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .src[data-s="both"]    { background: #1d2a22; color: var(--green); }
+  .src[data-s="maps"]    { background: #241a13; color: var(--ember); }
+  .src[data-s="organic"] { background: #1b2430; color: #6d9dc9; }
+
+  .bar { position: relative; display: inline-block; padding-left: 48px; }
+  .bar::before, .bar::after { content: ''; position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%); height: 5px; border-radius: 3px; }
+  .bar::before { width: 42px; background: var(--panel-2); }
+  .bar::after { width: calc(var(--w) * 42px); background: var(--green); }
+  .tags { display: block; margin-top: 4px; }
+  .tags em { font-style: normal; font-size: 10.5px; color: var(--dim); background: var(--panel-2);
+    border-radius: 4px; padding: 2px 6px; margin-right: 4px; display: inline-block; }
+
+  .cross { display: block; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; text-decoration: none; color: var(--ink); }
+  .cross:hover { border-color: #39414f; background: var(--panel-2); }
+  .cross b { display: block; font-family: var(--serif); font-size: 22px; font-weight: 400; }
+  .cross span { font-size: 12.5px; color: var(--dim); }
+
+
+  @media (max-width: 1180px) { .shell { grid-template-columns: minmax(0, 1fr) minmax(0, 460px); gap: 28px; } }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .shell { gap: 0; }
+    .pane-graph { top: calc(var(--nav-h) + var(--nav-sub-h)); height: 42svh; min-height: 260px; padding: 8px 0 4px; z-index: 20;
+      background: var(--bg); box-shadow: 0 12px 20px -14px #000; }
+    .pane-read { padding: 0; }
+    .block { padding: 30px 0; }
+    .beat { padding: 22px 0 22px 14px; }
+    .beat h2 { font-size: 21px; }
+    .facts li { flex: 1 1 calc(50% - 5px); min-width: 0; }
+    .facts b { font-size: 22px; }
+    .board { font-size: 12px; }
+    .board td, .board th { padding: 8px 6px; }
+    .bar { padding-left: 34px; }
+    .bar::before { width: 28px; }
+    .bar::after { width: calc(var(--w) * 28px); }
+    h1 { font-size: 30px; }
+  }
+</style>

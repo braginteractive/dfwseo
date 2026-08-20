@@ -1,0 +1,86 @@
+---
+/*
+ * One footer for all 525 pages.
+ *
+ * Ownership attribution links to dfwstrategy.com once, as a disclosure. That is
+ * deliberately the ONLY outbound link to a sibling property, and the other DFW
+ * sites are not linked here at all: a sitewide reciprocal block between
+ * commonly-owned domains is the pattern to avoid, whereas disclosing who
+ * published a research project is normal and expected.
+ */
+import { CITIES, PUBLISH_TIER, allMarkets, labelFor } from '../lib/markets.js'
+
+const markets = allMarkets()
+const industries = [...new Set(markets.map((m) => m.industry))]
+  .filter((i) => PUBLISH_TIER.includes(i))
+  .sort((a, b) => PUBLISH_TIER.indexOf(a) - PUBLISH_TIER.indexOf(b))
+  .slice(0, 8)
+const captured = new Date().toISOString().slice(0, 7)
+---
+<footer class="site-foot">
+  <div class="inner wrap">
+    <div class="brand-col">
+      <p class="brand">DFW<span>SEO</span></p>
+      <p class="tag">A map of which domains actually confer local authority across
+      Dallas and Fort Worth.</p>
+      <p class="cap">Data captured {captured} · {markets.length} markets</p>
+    </div>
+
+    <nav class="col">
+      <p class="h">Cities</p>
+      {CITIES.map((c) => <a href={`/${c.key}`}>{c.name}</a>)}
+    </nav>
+
+    <nav class="col">
+      <p class="h">Markets</p>
+      {industries.map((i) => <a href={`/dallas/${i}`}>{labelFor(i)}</a>)}
+    </nav>
+
+    <nav class="col">
+      <p class="h">About the data</p>
+      <a href="/methodology">Methodology</a>
+      <a href="/industries">Market value</a>
+      <a href="/methodology#scores">What the scores mean</a>
+      <a href="/methodology#depth">How deep we sample</a>
+    </nav>
+  </div>
+
+  <div class="legal wrap">
+    <p class="disclaimer">Everything here describes what is publicly observable in link data.
+    Rank and spam scores are third-party estimates, not Google metrics. Nothing on this site is
+    a claim about any company's intent or conduct.</p>
+    <p class="owner">A research project by{' '}<a href="https://dfwstrategy.com">DFW Strategy</a>.</p>
+  </div>
+</footer>
+
+<style>
+  .site-foot { border-top: 1px solid var(--line); margin-top: 60px;
+    background: linear-gradient(to bottom, transparent, #0a0c10); }
+  .inner { display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(0, 1fr));
+    gap: 40px; padding: 46px var(--gutter) 34px; }
+
+  .brand { font-family: var(--mono); font-size: 14px; font-weight: 500; margin: 0 0 12px; color: var(--ink); }
+  .brand span { color: var(--ember); }
+  .tag { margin: 0 0 14px; font-size: 13.5px; color: var(--dim); max-width: 34ch; line-height: 1.55; text-wrap: pretty; }
+  .cap { margin: 0; font-family: var(--mono); font-size: 10.5px; color: #4a5260; letter-spacing: .04em; }
+
+  .col { display: flex; flex-direction: column; gap: 7px; }
+  .h { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--dim); margin: 0 0 5px; }
+  .col a { color: var(--ink-soft); text-decoration: none; font-size: 13px; }
+  .col a:hover { color: var(--ember); }
+
+  .legal { display: flex; flex-wrap: wrap; gap: 16px 40px; align-items: baseline;
+    justify-content: space-between; padding: 20px var(--gutter) 44px;
+    border-top: 1px solid var(--line-soft); }
+  .disclaimer { margin: 0; font-size: 11.5px; color: var(--dim); max-width: 76ch;
+    line-height: 1.6; text-wrap: pretty; }
+  .owner { margin: 0; font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .owner a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .owner a:hover { color: var(--ember); border-color: var(--ember); }
+
+  @media (max-width: 860px) {
+    .inner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px; }
+    .brand-col { grid-column: 1 / -1; }
+  }
+</style>

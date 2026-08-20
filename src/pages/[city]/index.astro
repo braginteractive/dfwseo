@@ -1,0 +1,218 @@
+---
+import Head from '../../components/Head.astro'
+import Nav from '../../components/Nav.astro'
+import Footer from '../../components/Footer.astro'
+import { CITIES, PUBLISH_TIER, allMarkets, readMarket, labelFor, labelLower, SHAPE_NOTE } from '../../lib/markets.js'
+import '../../styles/global.css'
+
+export function getStaticPaths() {
+  return CITIES.map((c) => ({ params: { city: c.key } }))
+}
+
+const { city } = Astro.params
+const cityName = CITIES.find((c) => c.key === city).name
+const other = CITIES.find((c) => c.key !== city)
+
+const markets = allMarkets()
+  .filter((m) => m.city === city)
+  .map((m) => ({ ...m, data: readMarket(m.tag) }))
+  .sort((a, b) => {
+    const ai = PUBLISH_TIER.indexOf(a.industry), bi = PUBLISH_TIER.indexOf(b.industry)
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi)
+  })
+
+const totalShared = markets.reduce((a, m) => a + m.data.totalShared, 0)
+const sc = markets.reduce((a, m) => {
+  const s = m.data.sourceCounts ?? {}
+  return { maps: a.maps + (s.maps ?? 0), organic: a.organic + (s.organic ?? 0), both: a.both + (s.both ?? 0) }
+}, { maps: 0, organic: 0, both: 0 })
+const overlapPct = Math.round((sc.both / (sc.maps + sc.organic - sc.both)) * 100)
+
+// The domains reaching the most companies anywhere in this city.
+const connectors = new Map()
+for (const m of markets)
+  for (const r of m.data.leaderboard) {
+    const e = connectors.get(r.domain) ?? { domain: r.domain, rank: r.rank, tags: r.tags, markets: [], total: 0 }
+    e.markets.push({ industry: m.industry, degree: r.degree, of: m.data.competitors.length })
+    e.total += r.degree
+    connectors.set(r.domain, e)
+  }
+const topConnectors = [...connectors.values()]
+  .filter((c) => c.markets.length >= 2)
+  .sort((a, b) => b.markets.length - a.markets.length || b.total - a.total)
+  .slice(0, 15)
+const localConnectors = [...connectors.values()]
+  .filter((c) => c.tags.includes('dfw'))
+  .sort((a, b) => b.markets.length - a.markets.length || b.total - a.total)
+  .slice(0, 10)
+
+/*
+ * The city name leads. These two pages are the only ones on the site that can
+ * rank for "dallas seo" / "fort worth seo" as a subject rather than a service,
+ * and burying the city behind "The link graph" spends the first and most
+ * heavily weighted words of the title on a phrase nobody searches.
+ */
+const TITLE = `${cityName} link graph: which domains confer local authority · DFW SEO`
+const DESCRIPTION = `${markets.length} ${cityName} markets mapped from Google's map pack and organic results. Only ${overlapPct}% of the companies that rank appear in both lists, and ${localConnectors.length} of the domains connecting them carry a DFW identity.`
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: `${cityName} link graph`,
+    description: DESCRIPTION,
+    url: new URL(`/${city}/`, Astro.site).href,
+    creator: { '@type': 'Organization', name: 'DFW SEO', url: new URL('/', Astro.site).href },
+    spatialCoverage: { '@type': 'Place', name: `${cityName}, Texas` },
+    variableMeasured: 'Referring domains shared by two or more competitors ranking for the market keyword',
+    measurementTechnique: 'Referring-domain intersection across map pack and organic search results',
+    isAccessibleForFree: true,
+    /*
+     * The city page is the parent of its market pages, and hasPart is the
+     * only place that relationship is stated as data. The nav expresses it
+     * visually and the URL implies it; neither is something a crawler can
+     * rely on.
+     */
+    hasPart: markets.map((m) => ({
+      '@type': 'Dataset',
+      name: `${cityName} ${labelLower(m.industry)}`,
+      url: new URL(`/${city}/${m.industry}/`, Astro.site).href,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DFW link graph', item: new URL('/', Astro.site).href },
+      { '@type': 'ListItem', position: 2, name: cityName },
+    ],
+  },
+]
+---
+<html lang="en">
+<head>
+  <Head title={TITLE} description={DESCRIPTION} card={city} schema={schema} />
+</head>
+<body>
+  <Nav city={city} />
+
+  <header class="head wrap">
+    <p class="eyebrow">{cityName} · {markets.length} markets · {totalShared.toLocaleString()} shared referring domains</p>
+    <h1>{cityName}</h1>
+    <p class="lede">Every market we have mapped in {cityName}, with the domains that connect
+    them. {cityName} and {other.name} share only 2 of 10 ranking companies, so they are treated
+    as separate link markets throughout.</p>
+    <ul class="facts">
+      <li><b>{markets.length}</b><span>markets mapped</span></li>
+      <li><b>{totalShared.toLocaleString()}</b><span>shared referring domains</span></li>
+      <li><b>{overlapPct}%</b><span>in map pack and organic</span></li>
+      <li><b>{localConnectors.length}</b><span>connectors with DFW identity</span></li>
+    </ul>
+  </header>
+
+  <section class="wrap sec">
+    <h2>Markets</h2>
+    <div class="grid">
+      {markets.map((m) => (
+        <a class="card" href={`/${city}/${m.industry}`}>
+          <span class="card-name">{labelFor(m.industry)}</span>
+          <span class="card-shape" data-shape={m.data.shape}>{m.data.shape}</span>
+          <span class="card-note">{SHAPE_NOTE[m.data.shape]}</span>
+          <dl>
+            <div class="row"><dt>shared referrers</dt><dd class="mono">{m.data.totalShared.toLocaleString()}</dd></div>
+            <div class="stack"><dt>widest reach</dt><dd class="mono">{m.data.leaderboard[0]?.domain ?? 'none'}</dd></div>
+          </dl>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="wrap sec">
+    <h2>The domains that connect {cityName}</h2>
+    <p class="sub">Ranked by how many separate markets they appear in. Reach is a direct count,
+    not an estimate. Most of what crosses industries is national listing infrastructure rather
+    than anything local.</p>
+    <table class="board">
+      <thead><tr><th>Domain</th><th class="num">Markets</th><th>Appears in</th></tr></thead>
+      <tbody>
+        {topConnectors.map((c) => (
+          <tr>
+            <td class="dom">
+              <span class="mono">{c.domain}</span>
+              {c.tags.length > 0 && <span class="tags">{c.tags.map((t) => <em>{t}</em>)}</span>}
+            </td>
+            <td class="num mono">{c.markets.length}</td>
+            <td class="in">{c.markets.slice(0, 6).map((m) => <a href={`/${city}/${m.industry}`}>{labelFor(m.industry)}</a>)}
+              {c.markets.length > 6 && <span class="more">+{c.markets.length - 6}</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  {localConnectors.length > 0 && (
+    <section class="wrap sec">
+      <h2>Connectors with a DFW identity</h2>
+      <p class="sub">Domains carrying a local name. This is the entire locally-identified layer
+      we found across {markets.length} {cityName} markets.</p>
+      <table class="board">
+        <thead><tr><th>Domain</th><th class="num">Markets</th><th class="num">Rank</th></tr></thead>
+        <tbody>
+          {localConnectors.map((c) => (
+            <tr><td class="dom mono">{c.domain}</td><td class="num mono">{c.markets.length}</td><td class="num mono">{c.rank}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )}
+  <Footer />
+</body>
+</html>
+
+<style>
+  .head { padding: 54px var(--gutter) 30px; }
+  .head h1 { font-size: clamp(40px, 5vw, 66px); }
+  .facts { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 26px 0 0; }
+  .facts li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 11px 15px; display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
+  .facts b { font-family: var(--serif); font-size: 28px; line-height: 1; }
+  .facts span { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+
+  .sec { padding: 40px var(--gutter); border-top: 1px solid var(--line); }
+  .sub { color: var(--dim); font-size: 14px; margin: 0 0 24px; max-width: 70ch; text-wrap: pretty; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .card { display: flex; flex-direction: column; gap: 5px; padding: 17px; text-decoration: none;
+    color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    transition: border-color .18s, transform .18s, background .18s; }
+  .card:hover { border-color: #39414f; transform: translateY(-2px); background: var(--panel-2); }
+  .card-name { font-family: var(--serif); font-size: 22px; line-height: 1.1; }
+  .card-shape { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ember); }
+  .card-shape[data-shape="mesh"] { color: var(--red); }
+  .card-shape[data-shape="pockets"] { color: #6d9dc9; }
+  .card-shape[data-shape="hub-dominated"] { color: var(--green); }
+  .card-note { font-size: 12.5px; color: var(--dim); min-height: 2.6em; text-wrap: pretty; }
+  .card dl { margin: 10px 0 0; padding-top: 11px; border-top: 1px solid var(--line-soft);
+    display: flex; flex-direction: column; gap: 9px; }
+  .card dt { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--dim); margin: 0; }
+  .card dd { margin: 0; font-size: 12.5px; line-height: 1.4; }
+  .card .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .card .stack dd { margin-top: 3px; overflow-wrap: break-word; color: var(--ink); }
+
+  .board { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .board th { text-align: left; color: var(--dim); font-family: var(--mono); font-weight: 400;
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 0 10px 9px; border-bottom: 1px solid var(--line); }
+  .board td { padding: 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  .board tr:hover td { background: var(--panel); }
+  .board .num { text-align: right; white-space: nowrap; }
+  .board .dom { color: var(--ink); overflow-wrap: anywhere; }
+  .tags { display: block; margin-top: 4px; }
+  .tags em { font-style: normal; font-size: 10.5px; color: var(--dim); background: var(--panel-2);
+    border-radius: 4px; padding: 2px 6px; margin-right: 4px; display: inline-block; }
+  .in { display: flex; flex-wrap: wrap; gap: 5px; }
+  .in a { font-size: 11.5px; color: var(--dim); text-decoration: none; background: var(--panel-2);
+    border-radius: 4px; padding: 2px 7px; }
+  .in a:hover { color: var(--ink); }
+  .in .more { font-size: 11.5px; color: #4a5260; padding: 2px 4px; }
+
+</style>

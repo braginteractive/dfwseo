@@ -1,0 +1,732 @@
+---
+/*
+ * Full-bleed 3D hero. It is a backdrop first and an instrument second: the
+ * copy sits on top of it, a scrim keeps that copy readable, and the whole
+ * thing wakes up (scrim drops, links brighten) the moment a pointer enters.
+ *
+ * The old version was ambient only, which is what made it read as a hairball:
+ * nothing you did to it told you anything. Every node now carries its measured
+ * payload -- markets carry their overlap and shape, bridge domains carry how
+ * many markets they touch and whether they are Texas-owned -- and a rail cycles
+ * the same findings for readers who never touch it.
+ *
+ * Data is embedded rather than fetched: the page already reads _metro.json and
+ * the per-market summaries at build time, and a hero should not wait on a
+ * round trip to say something.
+ */
+import fs from 'node:fs'
+import { CITIES, SHAPE_NOTE, labelFor } from '../lib/markets.js'
+
+const metro = JSON.parse(fs.readFileSync('data/graphs/_metro.json', 'utf8'))
+const summary = JSON.parse(fs.readFileSync('data/graphs/_summary.json', 'utf8'))
+
+const markets = Object.fromEntries(
+  summary.map((s) => [
+    s.market,
+    {
+      label: labelFor(s.industry),
+      city: s.city,
+      cityName: CITIES.find((c) => c.key === s.city).name,
+      href: `/${s.city}/${s.industry}`,
+      shared: s.totalShared,
+      shape: s.shape,
+      shapeNote: SHAPE_NOTE[s.shape] ?? '',
+      competitors: s.competitors,
+      both: s.sourceCounts.both,
+      keyword: s.keyword,
+    },
+  ]),
+)
+
+const payload = {
+  nodes: metro.nodes,
+  edges: metro.edges,
+  bridgeCount: metro.bridgeCount,
+  dfwBridges: metro.dfwBridges,
+  shownBridges: metro.nodes.filter((n) => n.kind === 'bridge').length,
+  markets,
+}
+---
+<div class="stage" id="hero-stage">
+  <div class="graph" id="hero3d"></div>
+  <div class="labels" id="hero-labels" aria-hidden="true"></div>
+  <div class="scrim"></div>
+
+  <div class="ui">
+    <div class="controls" id="hero-controls">
+      <div class="seg" role="group" aria-label="Filter the graph by city">
+        <button type="button" data-city="all" class="on">All</button>
+        {CITIES.map((c) => <button type="button" data-city={c.key}>{c.name}</button>)}
+      </div>
+      <button type="button" class="chip" id="hero-dfw" aria-pressed="false">
+        Texas-owned only
+      </button>
+      <button type="button" class="chip icon" id="hero-spin" aria-pressed="true" title="Pause rotation">
+        <span class="pause">Pause</span>
+      </button>
+    </div>
+
+    <div class="rail">
+      <ul class="key" aria-label="Legend">
+        <li><i style="background:#e0763a"></i>market</li>
+        <li><i style="background:#6d9dc9"></i>bridge domain</li>
+        <li><i style="background:#5ea67d"></i>Texas-owned bridge</li>
+        <li class="sized">size = markets touched</li>
+      </ul>
+
+      <div class="card" id="hero-card" data-mode="rail">
+        <p class="kicker" id="hero-kicker">Reading the map</p>
+        <p class="body" id="hero-body"></p>
+        <a class="cta" id="hero-cta" href="/methodology">How this was built &rarr;</a>
+        <button type="button" class="unpin" id="hero-unpin" hidden>Clear</button>
+      </div>
+
+      <p class="hint">Drag to spin · hover a node to trace it · click to pin</p>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="hero-data" set:html={JSON.stringify(payload)}></script>
+
+<style>
+  /* The stage owns its own height so the graph never sizes off its content --
+     ForceGraph3D injects a div that would otherwise feed back into the box. */
+  .stage { position: absolute; inset: 0; overflow: hidden; }
+  /* touch-action on the canvas is set from JS, not here -- the controls write
+     it inline on connect and an inline style beats a stylesheet. */
+  .graph { position: absolute; inset: 0; z-index: 1; }
+  @media (min-width: 1000px) { .graph { left: 31%; } }
+  .graph :global(canvas) { display: block; }
+
+  /* Projected market names. Absolutely placed each frame from world coords. */
+  .labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  @media (min-width: 1000px) { .labels { left: 31%; } }
+  .labels :global(span) {
+    position: absolute; transform: translate(-50%, -50%);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--ink-soft); white-space: nowrap;
+    text-shadow: 0 1px 6px #0c0e13, 0 0 14px #0c0e13; transition: color .18s;
+  }
+  .labels :global(span i) { font-style: normal; color: #6a6f7c; }
+  .labels :global(span.on) { color: var(--ember); }
+  .labels :global(span.on i) { color: #a3673f; }
+
+  /* Legibility, not decoration: the copy overlays the left of the canvas, so
+     the left of the canvas has to go quiet. Engaging with the graph lifts it. */
+  .scrim {
+    position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    transition: opacity .5s ease;
+    background:
+      linear-gradient(100deg, var(--bg) 0%, rgba(12,14,19,.97) 30%, rgba(12,14,19,.72) 47%, rgba(12,14,19,0) 68%),
+      linear-gradient(to bottom, var(--bg) 0%, rgba(12,14,19,0) 18%),
+      linear-gradient(to top, var(--bg) 0%, rgba(12,14,19,0) 26%);
+  }
+  .stage.live .scrim { opacity: .58; }
+
+  .ui { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .ui :global(button), .ui :global(a) { pointer-events: auto; }
+
+  .controls {
+    position: absolute; top: 18px; right: var(--gutter);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .seg { display: flex; background: rgba(20,24,33,.78); border: 1px solid var(--line);
+    border-radius: 7px; padding: 2px; backdrop-filter: blur(8px); }
+  .seg button {
+    background: none; border: 0; border-radius: 5px; cursor: pointer;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--dim); padding: 5px 10px; transition: color .15s, background .15s;
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { color: var(--ink); background: var(--panel-2); }
+
+  .chip {
+    background: rgba(20,24,33,.78); border: 1px solid var(--line); border-radius: 7px;
+    color: var(--dim); cursor: pointer; padding: 6px 10px; backdrop-filter: blur(8px);
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .chip:hover { color: var(--ink); border-color: #3a424e; }
+  .chip[aria-pressed="true"]:not(.icon) { color: var(--green); border-color: #2c4438; background: #16221c; }
+
+  .rail {
+    position: absolute; right: var(--gutter); bottom: 20px;
+    width: min(360px, 42vw); display: flex; flex-direction: column; gap: 12px; align-items: flex-end;
+  }
+  .key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap;
+    justify-content: flex-end; gap: 4px 14px; font-size: 11px; color: var(--dim);
+    /* The legend sits over the cloud on narrow screens. */
+    text-shadow: 0 1px 8px var(--bg), 0 0 14px var(--bg); }
+  .key li { display: flex; align-items: center; gap: 6px; }
+  .key i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .key .sized { color: #6a6f7c; }
+
+  /* Fixed minimum height: the card swaps content constantly and a jumping
+     panel behind body copy reads as breakage. */
+  .card {
+    width: 100%; min-height: 132px; position: relative;
+    background: rgba(16,19,26,.82); border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 15px 14px; backdrop-filter: blur(10px);
+  }
+  .card[data-mode="node"] { border-color: #33404f; }
+  .kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--dim); margin: 0 0 7px; }
+  .card[data-mode="node"] .kicker { color: var(--accent); }
+  .body { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
+  .body :global(b) { color: var(--ink); font-weight: 500; }
+  .body :global(.mono) { font-family: var(--mono); font-size: 12.5px; }
+  .cta { font-size: 12.5px; text-decoration: none; }
+  .cta:hover { text-decoration: underline; }
+  .unpin {
+    position: absolute; top: 10px; right: 11px; background: none; border: 0; cursor: pointer;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim);
+  }
+  .unpin:hover { color: var(--ink); }
+  .hint { margin: 0; font-size: 11px; color: #6a6f7c; text-align: right; }
+
+  @media (max-width: 1100px) {
+    .rail { width: min(330px, 46vw); }
+    .key .sized { display: none; }
+  }
+  @media (max-width: 900px) {
+    /* On a phone the graph is scenery: it drops below the copy instead of
+       behind it, and the card -- the part that actually says something --
+       stays. Controls and labels have nowhere to go, so they go. */
+    .controls, .labels, .hint { display: none; }
+    .graph { top: 38%; }
+    .rail { left: var(--gutter); right: var(--gutter); width: auto; bottom: 16px; }
+    .key { justify-content: flex-start; }
+    .scrim { background:
+      linear-gradient(to bottom, var(--bg) 0%, var(--bg) 42%, rgba(12,14,19,.25) 58%, rgba(12,14,19,.55) 100%); }
+  }
+</style>
+
+<script>
+  import ForceGraph3D from '3d-force-graph'
+  import { Vector3 } from 'three'
+
+  const stage = document.getElementById('hero-stage')
+  const el = document.getElementById('hero3d')
+  const D = JSON.parse(document.getElementById('hero-data').textContent)
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const INDUSTRY = '#e0763a'
+  const BRIDGE = '#6d9dc9'
+  const DFW = '#5ea67d'
+
+  const isDfw = (n) => n.kind === 'bridge' && (n.tags ?? []).includes('dfw')
+  const baseColor = (n) => (n.kind === 'industry' ? INDUSTRY : isDfw(n) ? DFW : BRIDGE)
+
+  const nodes = D.nodes.map((n) => ({ ...n }))
+  const links = D.edges.map(([s, t]) => ({ source: s, target: t }))
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+
+  const nbrs = new Map(nodes.map((n) => [n.id, new Set([n.id])]))
+  for (const [s, t] of D.edges) { nbrs.get(s).add(t); nbrs.get(t).add(s) }
+
+  // A bridge belongs to whichever cities its markets are in; markets say so
+  // themselves. Used by the city filter.
+  const citiesOf = new Map(
+    nodes.map((n) => [
+      n.id,
+      n.kind === 'industry'
+        ? new Set([n.city])
+        : new Set([...nbrs.get(n.id)].map((id) => byId.get(id)?.city).filter(Boolean)),
+    ]),
+  )
+
+  // ---- state ----
+  let filter = 'all'      // 'all' | 'dallas' | 'fort-worth'
+  let dfwOnly = false
+  let hovered = null      // node id under the cursor
+  let pinned = null       // node id the reader clicked
+  let railNode = null     // node the idle rail is pointing at
+  let engaged = false
+
+  const focusId = () => hovered ?? pinned ?? railNode
+  const filtered = (n) =>
+    (filter !== 'all' && !citiesOf.get(n.id).has(filter)) ||
+    (dfwOnly && n.kind === 'bridge' && !isDfw(n))
+
+  const alphaOf = (n) => {
+    if (filtered(n)) return 0.04
+    const f = focusId()
+    if (!f) return 0.92
+    return nbrs.get(f).has(n.id) ? 1 : 0.1
+  }
+  const linkAlpha = (l) => {
+    const s = byId.get(typeof l.source === 'object' ? l.source.id : l.source)
+    const t = byId.get(typeof l.target === 'object' ? l.target.id : l.target)
+    if (!s || !t) return 0.05
+    if (filtered(s) || filtered(t)) return 0.015
+    const f = focusId()
+    if (!f) return engaged ? 0.34 : 0.2
+    return s.id === f || t.id === f ? 0.75 : 0.03
+  }
+  const linkLit = (l) => {
+    const f = focusId()
+    if (!f) return false
+    const s = typeof l.source === 'object' ? l.source.id : l.source
+    const t = typeof l.target === 'object' ? l.target.id : l.target
+    return s === f || t === f
+  }
+
+  const rgba = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16)
+    return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`
+  }
+
+  /*
+   * Orbit, not the default trackball. TrackballControls exposes noRotate /
+   * noZoom / noPan and has no autoRotate at all, so `autoRotate` and
+   * `enableZoom` -- the two properties this hero depends on -- were silently
+   * doing nothing on the default control type.
+   */
+  const g = ForceGraph3D({ controlType: 'orbit' })(el)
+    .backgroundColor('rgba(0,0,0,0)')
+    .showNavInfo(false)
+    .nodeLabel(() => '')            // the card is the tooltip
+    .nodeColor((n) => rgba(baseColor(n), alphaOf(n)))
+    .nodeVal((n) => (n.kind === 'industry' ? 9 : Math.max(0.8, n.degree * 0.55)))
+    .nodeOpacity(1)                 // alpha rides on the color, per node
+    .nodeResolution(12)
+    .linkColor((l) => rgba(linkLit(l) ? INDUSTRY : '#5a6779', linkAlpha(l)))
+    .linkOpacity(1)
+    .linkWidth(0.5)
+    .warmupTicks(40)
+    .cooldownTime(reduce ? 0 : 9000)
+    /*
+     * Node dragging off, deliberately. It steals the pointer from the orbit
+     * controls, whose pointercancel path then throws on every node click, and
+     * a drag reheats the simulation and rescrambles a layout the reader has
+     * just started to learn. Rotate and trace are the interactions here.
+     */
+    .enableNodeDrag(false)
+    .onNodeHover((n) => {
+      hovered = n?.id ?? null
+      el.style.cursor = n ? 'pointer' : ''
+      paint()
+      render()
+    })
+    .onNodeClick((n) => {
+      pinned = pinned === n.id ? null : n.id
+      hovered = n.id
+      stopRail()
+      paint()
+      render()
+    })
+    .onBackgroundClick(() => { pinned = null; paint(); render() })
+
+  g.graphData({ nodes, links })
+
+  const controls = g.controls()
+  controls.autoRotate = !reduce
+  controls.autoRotateSpeed = 0.45
+  controls.enableDamping = true     // the renderer already calls update() per frame
+  controls.dampingFactor = 0.08
+  controls.enableZoom = false       // the hero must never trap the page scroll
+  controls.enablePan = false        // no reset control, so no way to strand the view
+
+  /*
+   * OrbitControls writes `touch-action: none` inline on the canvas when it
+   * connects, which beats any stylesheet and traps vertical page scroll under
+   * a finger on mobile. Put it back -- one-finger drag still rotates, and the
+   * page still scrolls. It has to be re-asserted rather than set once: the
+   * controls connect after this runs, and would overwrite a one-shot fix.
+   */
+  const canvas = g.renderer().domElement
+  const keepPageScrollable = () => {
+    if (canvas.style.touchAction !== 'pan-y') canvas.style.touchAction = 'pan-y'
+  }
+  keepPageScrollable()
+
+  /*
+   * Repainting through the accessors would rebuild 900-odd link objects on
+   * every hover, so the emphasis is pushed straight into the materials
+   * instead. three-forcegraph caches one material per color string and shares
+   * it across every object of that color, so each object gets its own clone
+   * first -- otherwise dimming one node would dim every node like it.
+   */
+  let ownedAll = false
+  const setMat = (obj, color, opacity) => {
+    if (!obj?.material) return false
+    if (!obj.__own) {
+      obj.material = Array.isArray(obj.material)
+        ? obj.material.map((m) => m.clone())
+        : obj.material.clone()
+      obj.__own = true
+    }
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material]
+    for (const mm of list) {
+      if (mm.color?.set) mm.color.set(color)
+      mm.opacity = opacity
+      mm.transparent = true
+      mm.depthWrite = opacity > 0.85
+    }
+    return true
+  }
+  function paint() {
+    let missing = false
+    for (const n of nodes) if (!setMat(n.__threeObj, baseColor(n), alphaOf(n))) missing = true
+    for (const l of links) {
+      const lit = linkLit(l)
+      if (!setMat(l.__lineObj, lit ? INDUSTRY : '#5a6779', linkAlpha(l))) missing = true
+    }
+    // Objects are built on the frames after graphData(); keep repainting until
+    // every one of them exists and owns its material.
+    ownedAll = !missing
+    paintCard()
+  }
+
+  // ---- projected market labels ----
+  const layer = document.getElementById('hero-labels')
+  const labelEls = new Map()
+  const CITY_SHORT = { dallas: 'DAL', 'fort-worth': 'FTW' }
+  const CITY_NAME = { dallas: 'Dallas', 'fort-worth': 'Fort Worth' }
+  for (const n of nodes) {
+    if (n.kind !== 'industry') continue
+    const s = document.createElement('span')
+    // Both cities run the same industries, so a bare industry name lands on the
+    // board twice.
+    s.innerHTML = `${n.label} <i>${CITY_SHORT[n.city] ?? ''}</i>`
+    layer.appendChild(s)
+    labelEls.set(n.id, s)
+  }
+  const camDir = new Vector3()
+  const rel = new Vector3()
+  // The copy overlays the left of the canvas; labels that land under it are
+  // noise, so they are suppressed rather than fought with a z-index.
+  let guard = null
+  const measureGuard = () => {
+    const copy = document.querySelector('.hero-copy')
+    if (!copy) return
+    const c = copy.getBoundingClientRect()
+    const s = el.getBoundingClientRect()
+    guard = { x: c.right - s.left + 22, y0: c.top - s.top - 16, y1: c.bottom - s.top + 16 }
+  }
+  // Widths never change, and reading them mid-frame would thrash layout.
+  const labelW = new Map()
+  const MAX_LABELS = 14
+
+  function positionLabels() {
+    if (!labelEls.size || getComputedStyle(layer).display === 'none') return
+    const cam = g.camera()
+    cam.getWorldDirection(camDir)
+    const f = focusId()
+
+    const shown = []
+    for (const [id, s] of labelEls) {
+      const n = byId.get(id)
+      if (n.x == null) { s.style.opacity = '0'; continue }
+      rel.set(n.x, n.y, n.z ?? 0).sub(cam.position)
+      const depth = rel.dot(camDir)
+      const p = depth > 1 ? g.graph2ScreenCoords(n.x, n.y, n.z ?? 0) : null
+      const hide =
+        !p || filtered(n) ||
+        (guard && p.x < guard.x && p.y > guard.y0 && p.y < guard.y1) ||
+        (f && !nbrs.get(f).has(id))
+      if (hide) { s.style.opacity = '0'; continue }
+      shown.push({ id, s, p, depth })
+    }
+
+    /*
+     * Forty markets is more names than this space can hold, and colliding
+     * labels are worse than missing ones. Nearest wins the space, the focused
+     * node always wins, and the rest go quiet -- the card names whatever the
+     * reader is actually pointing at.
+     */
+    shown.sort((a, b) => (a.id === f ? -1 : b.id === f ? 1 : a.depth - b.depth))
+    const placed = []
+    let n = 0
+    for (const c of shown) {
+      if (!labelW.has(c.id)) labelW.set(c.id, c.s.offsetWidth || 90)
+      const w = labelW.get(c.id), h = 15
+      const x = c.p.x - w / 2, y = c.p.y - 16 - h / 2
+      const clash =
+        n >= MAX_LABELS ||
+        placed.some((r) => x < r.x + r.w + 8 && x + w + 8 > r.x && y < r.y + r.h + 4 && y + h + 4 > r.y)
+      if (clash && c.id !== f) { c.s.style.opacity = '0'; continue }
+      placed.push({ x, y, w, h })
+      n++
+      c.s.style.left = `${c.p.x}px`
+      c.s.style.top = `${c.p.y - 16}px`
+      // Fade with distance so the far side of the cloud reads as far away.
+      c.s.style.opacity = String(c.id === f ? 1 : Math.max(0.3, 1 - c.depth / 700))
+      c.s.classList.toggle('on', c.id === f || hovered === c.id)
+    }
+  }
+
+  // ---- the card ----
+  const card = document.getElementById('hero-card')
+  const kicker = document.getElementById('hero-kicker')
+  const body = document.getElementById('hero-body')
+  const cta = document.getElementById('hero-cta')
+  const unpin = document.getElementById('hero-unpin')
+  const num = (v) => `<span class="mono">${v.toLocaleString()}</span>`
+
+  const marketCopy = (n) => {
+    const m = D.markets[n.id]
+    if (!m) return null
+    const bridges = [...nbrs.get(n.id)].filter((id) => id !== n.id).length
+    return {
+      kicker: `${m.cityName} · ${m.label}`,
+      body:
+        `${num(m.shared)} referring domains link to two or more of the ${m.competitors} ` +
+        `companies ranking for “${m.keyword}”. Shape: <b>${m.shape}</b>` +
+        (m.shapeNote ? ` — ${m.shapeNote}` : '') + `. ` +
+        `<b>${m.both} of ${m.competitors}</b> rank in both the map pack and organic. ` +
+        `${bridges} of these domains also feed other industries.`,
+      cta: { href: m.href, text: `Open the ${m.cityName} ${m.label.toLowerCase()} map →` },
+    }
+  }
+  const bridgeCopy = (n) => {
+    const markets = [...nbrs.get(n.id)].filter((id) => id !== n.id)
+    const cities = [...citiesOf.get(n.id)]
+    const named = markets
+      .slice(0, 3)
+      .map((id) => D.markets[id]?.label.toLowerCase())
+      .filter(Boolean)
+    /*
+     * Tags come from the domain name, not from judgment, so the wording has to
+     * stay inside what the name actually shows. "National platform" is only
+     * sayable when the platform pattern matched.
+     */
+    const tags = n.tags ?? []
+    const verdict = isDfw(n)
+      ? `<b>Texas-owned</b>: one of only ${D.dfwBridges} of the ${num(D.bridgeCount)} bridge domains ` +
+        `whose name carries a DFW identity.`
+      : tags.includes('platform')
+        ? `A listing platform — the kind of link any competitor can get in an afternoon.`
+        : `Nothing in its name ties it to DFW, so it counts here as a national source.`
+    const other = tags.filter((t) => t !== 'dfw' && t !== 'platform')
+    return {
+      kicker: n.label,
+      body:
+        `Links to top-ranking companies in <b>${markets.length} of ${Object.keys(D.markets).length}</b> ` +
+        `markets we mapped${named.length ? ` — ${named.join(', ')} and more` : ''}. ` +
+        `Authority rank ${num(n.rank)}. ${verdict}` +
+        (cities.length === 2 ? ` Reaches both cities.` : '') +
+        (other.length ? ` Tagged ${other.join(', ')}.` : ''),
+      cta: { href: '/methodology', text: 'How a bridge is counted →' },
+    }
+  }
+
+  function paintCard() {
+    const f = focusId()
+    const n = f ? byId.get(f) : null
+    const isNode = !!n && (hovered || pinned)
+    const c = n ? (n.kind === 'industry' ? marketCopy(n) : bridgeCopy(n)) : null
+    if (c && isNode) {
+      card.dataset.mode = 'node'
+      kicker.textContent = c.kicker
+      body.innerHTML = c.body
+      cta.href = c.cta.href
+      cta.textContent = c.cta.text
+      unpin.hidden = !pinned
+    } else if (filter !== 'all' || dfwOnly) {
+      // A filter is a question. Answer it in numbers rather than leaving the
+      // reader to count nodes.
+      const vm = nodes.filter((n) => n.kind === 'industry' && !filtered(n)).length
+      const vb = nodes.filter((n) => n.kind === 'bridge' && !filtered(n)).length
+      const cityName = filter === 'all' ? 'Dallas and Fort Worth' : CITY_NAME[filter]
+      card.dataset.mode = 'node'
+      kicker.textContent = dfwOnly ? `${cityName} · Texas-owned` : cityName
+      body.innerHTML =
+        `<b>${vm}</b> markets, held together by <b>${vb}</b> of the ${D.shownBridges} biggest bridge ` +
+        `domains.` +
+        (dfwOnly
+          ? ` Every other connection on this board runs through a national platform — a directory ` +
+            `or a free listing site any competitor can join.`
+          : ` Dallas and Fort Worth share only 2 of their 10 top-ranking companies: they are ` +
+            `separate link markets, not one metro.`)
+      cta.href = filter === 'all' ? '/methodology' : `/${filter}`
+      cta.textContent = filter === 'all' ? 'How this was built →' : `Every ${cityName} market →`
+      unpin.hidden = true
+    } else {
+      card.dataset.mode = 'rail'
+      const r = RAIL[railIndex % RAIL.length]
+      kicker.textContent = r.kicker
+      body.innerHTML = r.body
+      cta.href = r.href
+      cta.textContent = r.cta
+      unpin.hidden = true
+    }
+  }
+
+  // ---- idle rail: the findings, without requiring a single click ----
+  const bridgeNodes = nodes.filter((n) => n.kind === 'bridge')
+  const biggest = bridgeNodes.reduce((a, b) => (b.degree > a.degree ? b : a))
+  const dfwNode = bridgeNodes.find(isDfw)
+  const marketEntries = Object.entries(D.markets)
+  const zeroOverlap = marketEntries.filter(([, m]) => m.both === 0)
+  const flattest = marketEntries.reduce((a, b) => (b[1].shared > a[1].shared ? b : a))
+
+  const RAIL = [
+    {
+      kicker: 'What you are looking at',
+      body: `Every <b>orange</b> node is one of the ${marketEntries.length} local markets we mapped. Every ` +
+        `<b>blue</b> node is a domain that links to top-ranking companies in two or more of them. ` +
+        `Those are the domains that carry authority across the metroplex.`,
+      href: '/methodology', cta: 'How this was built →', node: null,
+    },
+    {
+      kicker: 'The bridges are not local',
+      body: `Only <b>${D.dfwBridges} of ${D.bridgeCount.toLocaleString()}</b> bridge domains carry a DFW identity. ` +
+        `The rest are national directories and free listing platforms — links your competitors ` +
+        `can get in an afternoon.`,
+      href: '/methodology', cta: 'See how domains are tagged →', node: dfwNode?.id ?? null,
+    },
+    {
+      kicker: biggest.label,
+      body: `One domain links to top-ranking companies in <b>${biggest.degree} of ${marketEntries.length}</b> ` +
+        `markets. ${(biggest.tags ?? []).includes('platform')
+          ? 'It is a listing platform — free to join, and already holding the middle of this graph.'
+          : 'Nothing in its name ties it to DFW. The middle of this graph is not local.'}`,
+      href: '/methodology', cta: 'Why that matters →', node: biggest.id,
+    },
+    {
+      kicker: 'Two different games',
+      body: `In ${zeroOverlap.length} of the ${marketEntries.length} markets, <b>not one company</b> ranks at the ` +
+        `top of both the map pack and organic results. Ranking in one tells you almost nothing ` +
+        `about the other.`,
+      href: zeroOverlap[0] ? D.markets[zeroOverlap[0][0]].href : '/methodology',
+      cta: zeroOverlap[0] ? `See ${D.markets[zeroOverlap[0][0]].cityName} ${D.markets[zeroOverlap[0][0]].label.toLowerCase()} →` : 'Methodology →',
+      node: zeroOverlap[0]?.[0] ?? null,
+    },
+    {
+      kicker: `${flattest[1].cityName} · ${flattest[1].label}`,
+      body: `The densest market on the board: <b>${flattest[1].shared.toLocaleString()}</b> domains link to ` +
+        `two or more of its ${flattest[1].competitors} ranking companies. Density is not the same ` +
+        `as difficulty — most of those domains score zero on authority.`,
+      href: flattest[1].href, cta: `Open the map →`, node: flattest[0],
+    },
+  ]
+
+  let railIndex = 0
+  let railTimer = null
+  const advance = () => {
+    railIndex = (railIndex + 1) % RAIL.length
+    railNode = RAIL[railIndex].node
+    paint()
+    render()
+  }
+  const startRail = () => {
+    if (railTimer || reduce) return
+    railTimer = setInterval(advance, 7000)
+  }
+  const stopRail = () => { clearInterval(railTimer); railTimer = null; railNode = null }
+
+  unpin.addEventListener('click', () => {
+    pinned = null; hovered = null; railIndex = 0; railNode = RAIL[0].node
+    paint(); render(); startRail()
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && pinned) { pinned = null; paint(); render() }
+  })
+
+  // ---- controls ----
+  const seg = document.querySelectorAll('#hero-controls [data-city]')
+  for (const b of seg)
+    b.addEventListener('click', () => {
+      filter = b.dataset.city
+      for (const o of seg) o.classList.toggle('on', o === b)
+      paint(); render()
+    })
+
+  const dfwBtn = document.getElementById('hero-dfw')
+  dfwBtn.addEventListener('click', () => {
+    dfwOnly = !dfwOnly
+    dfwBtn.setAttribute('aria-pressed', String(dfwOnly))
+    paint(); render()
+  })
+
+  const spinBtn = document.getElementById('hero-spin')
+  let visible = true
+  let spin = !reduce
+  const setSpin = (v) => {
+    spin = v
+    controls.autoRotate = v && visible
+    spinBtn.setAttribute('aria-pressed', String(v))
+    spinBtn.querySelector('.pause').textContent = v ? 'Pause' : 'Spin'
+    spinBtn.title = v ? 'Pause rotation' : 'Resume rotation'
+  }
+  spinBtn.addEventListener('click', () => setSpin(!spin))
+
+  // ---- engagement: the backdrop lifts when you reach for it ----
+  stage.addEventListener('pointerenter', () => {
+    engaged = true; stage.classList.add('live'); stopRail(); paint(); render()
+  })
+  stage.addEventListener('pointerleave', () => {
+    engaged = false; hovered = null; stage.classList.remove('live')
+    if (!pinned) { railNode = RAIL[railIndex].node; startRail() }
+    paint(); render()
+  })
+
+  // ---- sizing ----
+  /*
+   * The canvas is sized from CSS -- it is inset from the left of the band on
+   * wide screens so the cloud composes beside the copy instead of behind it,
+   * and full-bleed below that. Measuring the mount is safe precisely because
+   * its box comes from CSS: if it took its height from its own content,
+   * ForceGraph3D's injected div would size off the container and the container
+   * off the div, and the box would grow without bound.
+   */
+  const fit = () => {
+    const r = el.getBoundingClientRect()
+    if (!r.width || !r.height) return
+    g.width(r.width).height(r.height)
+    g.zoomToFit(0, 56)
+    centre()
+    measureGuard()
+  }
+
+  /*
+   * zoomToFit only sets the camera distance; the orbit target stays at the
+   * origin, which the cloud's centre of mass is not. Aim at the bounding box
+   * instead, so the graph sits in the middle of its own frame and spins about
+   * itself rather than swinging across the copy.
+   */
+  const centre = () => {
+    const bb = g.getGraphBbox?.()
+    if (!bb) return
+    const mid = (a) => (a[0] + a[1]) / 2
+    controls.target.set(mid(bb.x), mid(bb.y), mid(bb.z))
+    controls.update()
+  }
+  fit()
+  new ResizeObserver(fit).observe(stage)
+
+  /*
+   * The simulation keeps expanding the cloud after warmup, so refit once it
+   * has settled. fitToBbox aims the camera back at the world origin as part of
+   * the tween, so re-centre only after that tween has finished -- otherwise it
+   * animates the target straight back off centre.
+   */
+  setTimeout(() => { g.zoomToFit(900, 56); setTimeout(centre, 1100) }, 1300)
+
+  // Labels ride the render loop; nothing else here needs a frame of its own.
+  let queued = false
+  const render = () => {
+    if (queued) return
+    queued = true
+    requestAnimationFrame(() => { queued = false; positionLabels() })
+  }
+  const loop = () => {
+    if (!ownedAll) paint()
+    keepPageScrollable()
+    positionLabels()
+    if (visible) requestAnimationFrame(loop)
+  }
+
+  new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting
+    controls.autoRotate = visible && spin
+    if (visible) { g.resumeAnimation(); requestAnimationFrame(loop); startRail() }
+    else { g.pauseAnimation(); stopRail() }
+  }).observe(stage)
+
+  railNode = RAIL[0].node
+  paint()
+  requestAnimationFrame(loop)
+  startRail()
+</script>

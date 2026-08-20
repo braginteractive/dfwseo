@@ -1,0 +1,117 @@
+---
+/**
+ * Everything inside <head>, in one place.
+ *
+ * The three page templates each carried their own copy of the charset,
+ * viewport, and font-loading block, which is how two of them ended up with a
+ * <title> pattern the third does not follow. More to the point, none of them
+ * emitted a canonical, an og:*, or a twitter:* tag, so every link shared from
+ * this site unfurled as a bare URL with no image and no description.
+ */
+import { OG_CARDS } from '../lib/og-cards.js'
+import Analytics from './Analytics.astro'
+import { CARD_HEIGHT, CARD_WIDTH } from '../lib/og.js'
+
+interface Props {
+  title: string
+  description: string
+  /**
+   * Card key from build-og.mjs — never a filename. That script picks JPEG or
+   * palette PNG per card based on what is in the frame, so an extension
+   * written here would go stale the moment that choice changed.
+   */
+  card?: string
+  /** JSON-LD, already shaped. Emitted verbatim when present. */
+  schema?: object
+  /**
+   * Keep the page out of the index while leaving its links crawlable. For a
+   * page the template can build but that has no finding on it — a company we
+   * measured and found nothing about — indexing it spends crawl budget to
+   * publish an empty answer.
+   */
+  noindex?: boolean
+}
+
+const { title, description, card = 'default', schema, noindex = false } = Astro.props
+
+/*
+ * Unknown key is a build error, not a fallback. Quietly serving the metro card
+ * to a page that asked for its own is exactly the kind of wrong that survives
+ * review — the tags validate, the unfurl renders, and every link looks alike.
+ */
+const file = OG_CARDS[card]
+if (!file) throw new Error(`Head: no OG card named "${card}". Run \`npm run og\`.`)
+
+/*
+ * Built with Astro's default `directory` format, so /dallas/roofing is served
+ * as /dallas/roofing/. The canonical has to name that exact form: pointing at
+ * the slashless variant asks crawlers to consolidate on a URL the host answers
+ * with a redirect, which is the one thing a canonical must never do.
+ */
+const path = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : `${Astro.url.pathname}/`
+const canonical = new URL(path, Astro.site).href
+const cardUrl = new URL(`/og/${file}`, Astro.site).href
+const cardType = file.endsWith('.jpg') ? 'image/jpeg' : 'image/png'
+---
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{/* max-image-preview: without it Google may show only a thumbnail, and the
+    cards are the point. `follow` stays on even when noindexed so the market
+    and connector links on the page still pass through. */}
+<meta
+  name="robots"
+  content={noindex
+    ? 'noindex, follow'
+    : 'index, follow, max-image-preview:large, max-snippet:-1'}
+/>
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="DFW SEO" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={cardUrl} />
+<meta property="og:image:type" content={cardType} />
+<meta property="og:image:width" content={String(CARD_WIDTH)} />
+<meta property="og:image:height" content={String(CARD_HEIGHT)} />
+<meta property="og:image:alt" content={`${title} — a map of the referring domains shared across the market.`} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={cardUrl} />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<meta name="theme-color" content="#0c0e13" />
+
+{/*
+  Preloaded, not just declared. A @font-face is only discovered once the CSS is
+  parsed, so without these the three faces that render the first screen — body
+  copy, the headline, and the eyebrow above it — queue behind the stylesheet.
+  `crossorigin` is required even same-origin: font fetches are CORS-mode, and a
+  preload whose mode does not match the real request downloads the file twice.
+
+  IBM Plex Mono 500 is here because the wordmark is set in it. That was true
+  when this list was first written and got missed -- the brand was 14px then and
+  read as one more nav link, so the face slipped past as "emphasis". At 20px it
+  is the first thing on the page, and a swap on the logo is the single most
+  visible flash the site can produce. 10KB.
+
+  Astro comment, not an HTML one: this is 600 bytes of reasoning that belongs in
+  the source and not in 525 shipped pages.
+*/}
+<link rel="preload" href="/fonts/archivo-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/instrument-serif-400-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/ibm-plex-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/ibm-plex-mono-500-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+{schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+
+<Analytics />

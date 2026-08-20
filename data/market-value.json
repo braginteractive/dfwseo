@@ -1,0 +1,338 @@
+[
+  {
+    "name": "insurance",
+    "vol": 8830,
+    "cpc": 154.10402038505097,
+    "value": 1360738.5,
+    "bestKw": "car insurance quote (Dallas)"
+  },
+  {
+    "name": "legal / personal injury",
+    "vol": 2590,
+    "cpc": 322.220694980695,
+    "value": 834551.6,
+    "bestKw": "truck accident lawyer (Dallas)"
+  },
+  {
+    "name": "hvac",
+    "vol": 5210,
+    "cpc": 46.83773512476008,
+    "value": 244024.6,
+    "bestKw": "ac repair (Dallas)"
+  },
+  {
+    "name": "plumbing",
+    "vol": 7030,
+    "cpc": 34.08179231863443,
+    "value": 239595,
+    "bestKw": "plumber (Fort Worth)"
+  },
+  {
+    "name": "legal / criminal",
+    "vol": 2930,
+    "cpc": 81.72808873720138,
+    "value": 239463.30000000002,
+    "bestKw": "dwi lawyer (Dallas)"
+  },
+  {
+    "name": "legal / family",
+    "vol": 4700,
+    "cpc": 48.07834042553193,
+    "value": 225968.20000000004,
+    "bestKw": "divorce lawyer (Dallas)"
+  },
+  {
+    "name": "dental / general",
+    "vol": 11200,
+    "cpc": 14.970035714285714,
+    "value": 167664.4,
+    "bestKw": "dentist (Fort Worth)"
+  },
+  {
+    "name": "dental / ortho",
+    "vol": 8360,
+    "cpc": 17.52244019138756,
+    "value": 146487.6,
+    "bestKw": "orthodontist (Fort Worth)"
+  },
+  {
+    "name": "garage doors",
+    "vol": 2320,
+    "cpc": 59.28655172413793,
+    "value": 137544.8,
+    "bestKw": "garage door repair (Dallas)"
+  },
+  {
+    "name": "med spa",
+    "vol": 5620,
+    "cpc": 24.38565836298933,
+    "value": 137047.40000000002,
+    "bestKw": "laser hair removal (Dallas)"
+  },
+  {
+    "name": "foundation repair",
+    "vol": 1310,
+    "cpc": 83.44969465648855,
+    "value": 109319.09999999999,
+    "bestKw": "foundation repair (Dallas)"
+  },
+  {
+    "name": "moving",
+    "vol": 4080,
+    "cpc": 26.44058823529412,
+    "value": 107877.6,
+    "bestKw": "moving company (Dallas)"
+  },
+  {
+    "name": "pest control",
+    "vol": 2700,
+    "cpc": 39.45762962962963,
+    "value": 106535.6,
+    "bestKw": "pest control (Dallas)"
+  },
+  {
+    "name": "veterinary",
+    "vol": 8670,
+    "cpc": 11.001234140715109,
+    "value": 95380.7,
+    "bestKw": "veterinarian (Dallas)"
+  },
+  {
+    "name": "electrical",
+    "vol": 4180,
+    "cpc": 18.836052631578948,
+    "value": 78734.7,
+    "bestKw": "electrician (Fort Worth)"
+  },
+  {
+    "name": "dental / implants",
+    "vol": 3130,
+    "cpc": 23.606166134185305,
+    "value": 73887.3,
+    "bestKw": "dental implants (Fort Worth)"
+  },
+  {
+    "name": "accounting / tax",
+    "vol": 2710,
+    "cpc": 27.0160147601476,
+    "value": 73213.4,
+    "bestKw": "cpa (Fort Worth)"
+  },
+  {
+    "name": "financial advisory",
+    "vol": 2180,
+    "cpc": 32.77284403669725,
+    "value": 71444.8,
+    "bestKw": "financial advisor (Dallas)"
+  },
+  {
+    "name": "self storage",
+    "vol": 4560,
+    "cpc": 14.883333333333333,
+    "value": 67868,
+    "bestKw": "storage units (Dallas)"
+  },
+  {
+    "name": "lasik / vision",
+    "vol": 7090,
+    "cpc": 8.709873060648802,
+    "value": 61753,
+    "bestKw": "optometrist (Dallas)"
+  },
+  {
+    "name": "water damage restoration",
+    "vol": 990,
+    "cpc": 59.67303030303031,
+    "value": 59076.3,
+    "bestKw": "water damage restoration (Dallas)"
+  },
+  {
+    "name": "fitness",
+    "vol": 23500,
+    "cpc": 2.2155702127659573,
+    "value": 52065.9,
+    "bestKw": "gym (Dallas)"
+  },
+  {
+    "name": "mortgage",
+    "vol": 1960,
+    "cpc": 25.482397959183672,
+    "value": 49945.5,
+    "bestKw": "mortgage lender (Dallas)"
+  },
+  {
+    "name": "legal / immigration",
+    "vol": 1990,
+    "cpc": 23.934221105527637,
+    "value": 47629.1,
+    "bestKw": "immigration lawyer (Dallas)"
+  },
+  {
+    "name": "private school / daycare",
+    "vol": 5250,
+    "cpc": 7.847580952380952,
+    "value": 41199.799999999996,
+    "bestKw": "daycare (Fort Worth)"
+  },
+  {
+    "name": "senior / home care",
+    "vol": 3250,
+    "cpc": 11.711907692307694,
+    "value": 38063.700000000004,
+    "bestKw": "assisted living (Fort Worth)"
+  },
+  {
+    "name": "remodeling",
+    "vol": 1780,
+    "cpc": 20.935,
+    "value": 37264.299999999996,
+    "bestKw": "bathroom remodeling (Dallas)"
+  },
+  {
+    "name": "solar",
+    "vol": 870,
+    "cpc": 38.86816091954023,
+    "value": 33815.3,
+    "bestKw": "solar panel installation (Fort Worth)"
+  },
+  {
+    "name": "legal / estate",
+    "vol": 3250,
+    "cpc": 8.975446153846153,
+    "value": 29170.2,
+    "bestKw": "estate planning attorney (Fort Worth)"
+  },
+  {
+    "name": "roofing",
+    "vol": 2180,
+    "cpc": 12.559633027522937,
+    "value": 27380,
+    "bestKw": "roofing company (Dallas)"
+  },
+  {
+    "name": "dermatology",
+    "vol": 4960,
+    "cpc": 5.291774193548387,
+    "value": 26247.2,
+    "bestKw": "dermatologist (Dallas)"
+  },
+  {
+    "name": "auto / repair",
+    "vol": 4640,
+    "cpc": 5.491120689655172,
+    "value": 25478.799999999996,
+    "bestKw": "mechanic (Dallas)"
+  },
+  {
+    "name": "landscaping",
+    "vol": 1240,
+    "cpc": 17.993467741935486,
+    "value": 22311.9,
+    "bestKw": "lawn care service (Dallas)"
+  },
+  {
+    "name": "IT / MSP",
+    "vol": 240,
+    "cpc": 75.74583333333334,
+    "value": 18179,
+    "bestKw": "managed it services (Dallas)"
+  },
+  {
+    "name": "event / wedding",
+    "vol": 6270,
+    "cpc": 2.78170653907496,
+    "value": 17441.3,
+    "bestKw": "wedding venue (Dallas)"
+  },
+  {
+    "name": "commercial cleaning",
+    "vol": 460,
+    "cpc": 34.33239130434783,
+    "value": 15792.900000000001,
+    "bestKw": "commercial cleaning (Dallas)"
+  },
+  {
+    "name": "real estate",
+    "vol": 26580,
+    "cpc": 0.5836117381489841,
+    "value": 15512.4,
+    "bestKw": "real estate agent (Dallas)"
+  },
+  {
+    "name": "auto / collision",
+    "vol": 1630,
+    "cpc": 8.893435582822086,
+    "value": 14496.3,
+    "bestKw": "auto body shop (Dallas)"
+  },
+  {
+    "name": "cosmetic surgery",
+    "vol": 800,
+    "cpc": 13.276,
+    "value": 10620.8,
+    "bestKw": "breast augmentation (Fort Worth)"
+  },
+  {
+    "name": "staffing",
+    "vol": 3390,
+    "cpc": 2.9278761061946903,
+    "value": 9925.5,
+    "bestKw": "staffing agency (Dallas)"
+  },
+  {
+    "name": "pools",
+    "vol": 590,
+    "cpc": 14.693220338983048,
+    "value": 8668.999999999998,
+    "bestKw": "pool contractor (Dallas)"
+  },
+  {
+    "name": "painting",
+    "vol": 220,
+    "cpc": 31.060000000000002,
+    "value": 6833.200000000001,
+    "bestKw": "painting contractor (Fort Worth)"
+  },
+  {
+    "name": "fencing",
+    "vol": 200,
+    "cpc": 18.336,
+    "value": 3667.2,
+    "bestKw": "fence company (Fort Worth)"
+  },
+  {
+    "name": "weight loss / wellness",
+    "vol": 410,
+    "cpc": 7.850731707317072,
+    "value": 3218.7999999999997,
+    "bestKw": "weight loss clinic (Dallas)"
+  },
+  {
+    "name": "security systems",
+    "vol": 110,
+    "cpc": 13.535454545454543,
+    "value": 1488.8999999999999,
+    "bestKw": "security system installation (Dallas)"
+  },
+  {
+    "name": "addiction treatment",
+    "vol": 0,
+    "cpc": 0,
+    "value": 0,
+    "bestKw": ""
+  },
+  {
+    "name": "chiropractic",
+    "vol": 0,
+    "cpc": 0,
+    "value": 0,
+    "bestKw": ""
+  },
+  {
+    "name": "fertility / ivf",
+    "vol": 0,
+    "cpc": 0,
+    "value": 0,
+    "bestKw": ""
+  }
+]

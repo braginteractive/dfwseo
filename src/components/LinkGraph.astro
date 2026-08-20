@@ -1,0 +1,236 @@
+---
+// Interactive 2D link graph. Positions are precomputed at build time, so it
+// renders at final layout instantly and nodes never move between filter or
+// focus changes -- the reader's spatial memory stays intact.
+const { market } = Astro.props
+---
+<div class="graph-wrap">
+  <div class="graph" id="graph" data-market={market}></div>
+  <div class="graph-legend" id="legend"></div>
+  <div class="graph-hint" id="hint">Hover to trace · click to pin · drag a node to pull the network · scroll to wheel-zoom</div>
+  <button class="graph-reset" id="reset" type="button">Reset view</button>
+</div>
+
+<style>
+  .graph-wrap { position: relative; width: 100%; height: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .graph { position: absolute; inset: 0; }
+  .graph-legend { position: absolute; left: 14px; bottom: 12px; display: flex; flex-wrap: wrap;
+    gap: 4px 12px; font-size: 11px; color: var(--dim); pointer-events: none; }
+  @media (max-width: 620px) {
+    .graph-legend { left: 10px; right: 110px; bottom: 8px; gap: 3px 9px; font-size: 9.5px; }
+    /* Injected at runtime, so it carries no astro scope id: needs :global. */
+    .graph-legend :global(span:nth-child(n+4)) { display: none; }
+    .graph-reset { right: 10px; bottom: 8px; padding: 4px 8px; font-size: 10px; }
+  }
+  .graph-legend :global(span) { display: flex; align-items: center; gap: 5px; }
+  .graph-legend i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+  .graph-hint { position: absolute; right: 14px; top: 12px; font-size: 11px; color: var(--dim); opacity: .75; max-width: 210px; text-align: right; line-height: 1.45; pointer-events: none; }
+  .graph-reset { position: absolute; right: 14px; bottom: 12px; background: #1e232b; color: var(--dim); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: inherit; cursor: pointer; }
+  .graph-reset:hover { color: var(--ink); border-color: #3a424e; }
+  @media (max-width: 900px) { .graph-hint { display: none; } }
+</style>
+
+<script>
+  import ForceGraph from 'force-graph'
+  import { TIERS, TIER_COLOR, COMPETITOR } from '../lib/tiers.js'
+
+  const el = document.getElementById('graph')
+  const data = await (await fetch(`/graphs/${el.dataset.market}.json`)).json()
+
+  // Scoped component CSS is applied at build time and never reaches DOM injected
+  // at runtime, so the swatches carry their own inline styling.
+  const swatch = (c) =>
+    `<i style="background:${c};width:8px;height:8px;border-radius:50%;display:block;flex:none"></i>`
+  document.getElementById('legend').innerHTML =
+    `<span>${swatch(COMPETITOR)}ranks for the term</span>` +
+    TIERS.map((t) => `<span>${swatch(t.color)}${t.label}</span>`).join('')
+
+  const byId = new Map(data.nodes.map((n) => [n.id, n]))
+  // Seeded from the precomputed layout so the graph renders settled instantly,
+  // but deliberately NOT pinned -- dragging a node should move its neighbours.
+  const nodes = data.nodes.map((n) => ({ ...n }))
+  const links = data.edges.map(([s, t]) => ({ source: s, target: t }))
+
+  // Adjacency for focus/dim logic.
+  const adj = new Map(data.nodes.map((n) => [n.id, new Set()]))
+  for (const [s, t] of data.edges) { adj.get(s).add(t); adj.get(t).add(s) }
+
+  let focus = null      // Set of ids to emphasise, or null for "everything"
+  let pinned = null     // node id the reader clicked
+  let hovered = null    // node under the cursor right now
+
+  // Hover beats scroll focus: whatever the cursor is on is what you want to see.
+  const active = () => (hovered ? new Set([hovered, ...adj.get(hovered)]) : focus)
+  const inFocus = (id) => { const a = active(); return !a || a.has(id) }
+  const colorOf = (n) => (n.kind === 'competitor' ? COMPETITOR : TIER_COLOR[n.tier])
+
+  // Greedy label placement: force-graph has no collision handling, and colliding
+  // labels are worse than missing ones. Highest-degree nodes win the space.
+  let placed = []
+  const fits = (x, y, w, h) =>
+    !placed.some((r) => x < r.x + r.w && x + w > r.x && y < r.y + r.h && y + h > r.y)
+
+  const g = ForceGraph()(el)
+    .graphData({ nodes, links })
+    .backgroundColor('transparent')
+    .cooldownTicks(0)               // starts settled; drag reheats it (below)
+    .enableNodeDrag(true)
+    .d3AlphaDecay(0.035)
+    .d3VelocityDecay(0.32)
+    .nodeRelSize(1)
+    .nodeVal((n) => n.size)
+    .nodeLabel((n) =>
+      n.kind === 'competitor'
+        ? `<b>${n.label}</b><br>ranks #${n.serpRank ?? '-'} for this term`
+        : `<b>${n.label}</b><br>links to ${n.degree} of ${data.competitors.length} · rank ${n.rank} · spam ${n.spam}${n.tags?.length ? '<br>' + n.tags.join(' · ') : ''}`)
+    .onRenderFramePre(() => { placed = [] })
+    .nodeCanvasObject((n, ctx, scale) => {
+      const dim = !inFocus(n.id)
+      const r = Math.sqrt(n.size) * 1.5
+      ctx.globalAlpha = dim ? 0.07 : 1
+      ctx.beginPath()
+      ctx.arc(n.x, n.y, r, 0, 2 * Math.PI)
+      ctx.fillStyle = colorOf(n)
+      ctx.fill()
+      if (n.kind === 'competitor') { ctx.lineWidth = 1.5 / scale; ctx.strokeStyle = '#0c0e13'; ctx.stroke() }
+      if (n.id === hovered || n.id === pinned) {
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 3.5 / scale, 0, 2 * Math.PI)
+        ctx.lineWidth = 1.6 / scale; ctx.strokeStyle = '#e0763a'; ctx.stroke()
+      }
+      // Label only what is worth labeling: competitors, real connectors, focused nodes.
+      // Label sparingly. A focus set of 200+ nodes (e.g. "show the unranked")
+      // would otherwise paint a wall of text over the whole canvas.
+      const a = active()
+      const focused = a && a.size <= 30 && a.has(n.id)
+      // Degree alone is not enough to earn a label: with 12 competitors plenty of
+      // rank-0 junk links to 6+ of them. Require measurable authority too.
+      const ranked = n.tier && n.tier !== 'unranked'
+      const minDeg = compact ? 8 : 6
+      const worth = n.kind === 'competitor' || (ranked && n.degree >= minDeg)
+        || (focused && ranked && n.degree >= (compact ? 3 : 2))
+      if (worth && !dim && scale > (compact ? 0.75 : 0.55)) {
+        const fs = (compact ? 8.5 : 11) / scale
+        ctx.font = `${n.kind === 'competitor' ? 500 : 400} ${fs}px "IBM Plex Mono", ui-monospace, monospace`
+        const w = ctx.measureText(n.label).width
+        const h = fs * 1.35
+        // try right of the node, then left, then above; skip if all collide
+        const spots = [
+          [n.x + r + 3 / scale, n.y - h / 2],
+          [n.x - r - 3 / scale - w, n.y - h / 2],
+          [n.x - w / 2, n.y - r - h - 2 / scale],
+        ]
+        const spot = spots.find(([x, y]) => fits(x, y, w, h))
+        if (spot) {
+          placed.push({ x: spot[0], y: spot[1], w, h })
+          ctx.fillStyle = 'rgba(12,14,19,0.78)'
+          ctx.fillRect(spot[0] - 2 / scale, spot[1], w + 4 / scale, h)
+          ctx.fillStyle = n.kind === 'competitor' ? '#f4f1e6' : '#b0b5c0'
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'top'
+          ctx.fillText(n.label, spot[0], spot[1] + h * 0.16)
+        }
+      }
+      ctx.globalAlpha = 1
+    })
+    .nodePointerAreaPaint((n, color, ctx) => {
+      ctx.fillStyle = color
+      ctx.beginPath(); ctx.arc(n.x, n.y, Math.sqrt(n.size) * 1.5 + 2, 0, 2 * Math.PI); ctx.fill()
+    })
+    .linkColor((l) => {
+      const s = typeof l.source === 'object' ? l.source.id : l.source
+      const t = typeof l.target === 'object' ? l.target.id : l.target
+      return inFocus(s) && inFocus(t) ? 'rgba(126,140,160,0.28)' : 'rgba(126,140,160,0.03)'
+    })
+    .linkWidth(0.6)
+    .onNodeHover((n) => {
+      hovered = n ? n.id : null
+      el.style.cursor = n ? 'pointer' : 'grab'
+      redraw()
+    })
+    .onNodeDrag(() => { hovered = null })
+    .onNodeDragEnd(() => g.d3ReheatSimulation())
+    .onNodeClick((n) => {
+      pinned = pinned === n.id ? null : n.id
+      setFocus(pinned ? new Set([n.id, ...adj.get(n.id)]) : null)
+    })
+    .onBackgroundClick(() => { pinned = null; setFocus(null) })
+
+  const redraw = () => g.nodeCanvasObject(g.nodeCanvasObject())
+  function setFocus(set) { focus = set; redraw() }
+
+  // On a 390px-wide canvas the same 11px label is proportionally three times the
+  // size it is on desktop, and the legend eats a third of the vertical budget.
+  // Scale the type down and label fewer nodes.
+  let compact = false
+  function fit() {
+    const r = el.getBoundingClientRect()
+    g.width(r.width).height(r.height)
+    const next = r.width < 620
+    if (next !== compact) { compact = next; redraw() }
+  }
+  fit()
+  new ResizeObserver(fit).observe(el)
+  g.zoomToFit(0, 40)
+  el.style.cursor = 'grab'
+  document.getElementById('reset').onclick = () => {
+    pinned = null; hovered = null; setFocus(null); g.zoomToFit(500, 40)
+  }
+
+  // ---- Scroll-driven focus. Each story section declares what to look at. ----
+  const resolve = (s) => {
+    const d = s.dataset
+    if (d.focus === 'all') return null
+    if (d.focus === 'domains') {
+      const ids = d.domains.split(',').map((x) => x.trim()).filter((x) => byId.has(x))
+      const set = new Set(ids)
+      if (d.withNeighbors === 'true') for (const i of ids) for (const n of adj.get(i)) set.add(n)
+      return set
+    }
+    if (d.focus === 'connectors') {
+      const n = +(d.n ?? 8)
+      const top = data.leaderboard.slice(0, n).map((r) => r.domain)
+      const set = new Set(top)
+      for (const t of top) for (const nb of adj.get(t) ?? []) set.add(nb)
+      return set
+    }
+    if (d.focus === 'competitors') return new Set(data.competitors.map((c) => c.domain))
+    if (d.focus === 'tier') return new Set(data.nodes.filter((n) => n.tier === d.tier).map((n) => n.id))
+    return null
+  }
+
+  // Stable active-beat detection. An IntersectionObserver with overlapping
+  // thresholds fires in bursts and flips the highlight back and forth; instead
+  // pick the LAST beat whose top has crossed a fixed line. Monotonic with scroll
+  // direction, so it cannot bounce.
+  const sections = [...document.querySelectorAll('[data-focus]')]
+  if (sections.length) {
+    let current = null
+    let queued = false
+
+    const pick = () => {
+      const line = window.innerHeight * 0.42
+      let best = sections[0]
+      for (const s of sections) if (s.getBoundingClientRect().top <= line) best = s
+      return best
+    }
+
+    const sync = () => {
+      queued = false
+      if (pinned) return // an explicit click outranks scroll position
+      const next = pick()
+      if (next === current) return
+      current = next
+      sections.forEach((s) => s.classList.toggle('live', s === next))
+      setFocus(resolve(next))
+    }
+
+    const onScroll = () => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(sync)
+    }
+    addEventListener('scroll', onScroll, { passive: true })
+    addEventListener('resize', onScroll, { passive: true })
+    sync()
+  }
+</script>

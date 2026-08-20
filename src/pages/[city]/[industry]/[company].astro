@@ -1,0 +1,275 @@
+---
+import Head from '../../../components/Head.astro'
+import Nav from '../../../components/Nav.astro'
+import Footer from '../../../components/Footer.astro'
+import { CITIES, allMarkets, readMarket, readSite, labelFor, labelLower, slugOf, sourceOf, connectorCoverage } from '../../../lib/markets.js'
+import { TIERS } from '../../../lib/tiers.js'
+import '../../../styles/global.css'
+
+export function getStaticPaths() {
+  const out = []
+  for (const m of allMarkets()) {
+    const data = readMarket(m.tag)
+    for (const c of data.competitors)
+      out.push({ params: { city: m.city, industry: m.industry, company: slugOf(c.domain) } })
+  }
+  return out
+}
+
+const { city, industry, company } = Astro.params
+const tag = `${city}-${industry}`
+const market = readMarket(tag)
+const comp = market.competitors.find((c) => slugOf(c.domain) === company)
+const site = readSite(city, industry, comp.domain)
+const cityName = CITIES.find((c) => c.key === city).name
+const label = labelFor(industry)
+const labelMid = labelLower(industry)
+
+const { has, missing } = connectorCoverage(market, comp.domain)
+const src = sourceOf(comp)
+const SRC_LABEL = { both: 'map pack and organic', maps: 'map pack', organic: 'organic' }
+
+// Referring domains that score above zero, by tier.
+const tiers = TIERS.filter((t) => site?.tiers?.[t.id]).map((t) => ({ ...t, ...site.tiers[t.id] }))
+const total = site?.totalReferringDomains ?? 0
+const rated = tiers.filter((t) => t.id !== 'unranked').reduce((a, t) => a + t.total, 0)
+
+// How they compare on connector coverage.
+const peers = market.competitors.map((c) => ({
+  domain: c.domain, n: connectorCoverage(market, c.domain).has.length,
+})).sort((a, b) => b.n - a.n)
+const rank = peers.findIndex((p) => p.domain === comp.domain) + 1
+
+/*
+ * These 480 pages are template-built from one layout, which is the shape
+ * Google treats as doorway content unless each page carries something only it
+ * can say. Three things do: the tier split of this domain's referring
+ * profile, which of the market's connectors reach it, and where that puts it
+ * against its peers. The title leads with the first two because they are the
+ * numbers a reader is here for and the ones no competing page has.
+ */
+const TITLE = `${comp.domain}: ${total} referring domains, ${rated} rated · DFW SEO`
+const DESCRIPTION = `${total} referring domains point at ${comp.domain}, ${rated} of them carrying any rank score. It has ${has.length} of the ${has.length + missing.length} domains that connect the ${cityName} ${labelMid} market — ${rank === 1 ? `the widest coverage of the ${peers.length} companies we measured` : `ranked ${rank} of ${peers.length} on connector coverage`}.`
+
+/*
+ * The one case worth keeping out of the index: we built a page, measured the
+ * domain, and found nothing to report — no referring domains, no connectors.
+ * There is no answer on it for a query to deserve. `follow` stays on, so the
+ * market and peer links still pass through.
+ */
+const EMPTY = total === 0 && has.length === 0
+
+/*
+ * A Dataset describing our own measurement, and a breadcrumb. Deliberately no
+ * Organization or LocalBusiness node for the company itself: we do not own
+ * these businesses, and emitting structured data on their behalf would be
+ * asserting facts about them in a machine-readable form. What we measured is
+ * ours to state; what they are is not.
+ */
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: `${comp.domain}: referring domain profile`,
+    description: DESCRIPTION,
+    url: new URL(`/${city}/${industry}/${company}/`, Astro.site).href,
+    creator: { '@type': 'Organization', name: 'DFW SEO', url: new URL('/', Astro.site).href },
+    spatialCoverage: { '@type': 'Place', name: `${cityName}, Texas` },
+    variableMeasured: 'Referring domains by authority tier, and coverage of the market\'s shared connectors',
+    isAccessibleForFree: true,
+    isPartOf: {
+      '@type': 'Dataset',
+      name: `${cityName} ${labelMid}: shared referring domains`,
+      url: new URL(`/${city}/${industry}/`, Astro.site).href,
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'DFW link graph', item: new URL('/', Astro.site).href },
+      { '@type': 'ListItem', position: 2, name: cityName, item: new URL(`/${city}/`, Astro.site).href },
+      { '@type': 'ListItem', position: 3, name: label, item: new URL(`/${city}/${industry}/`, Astro.site).href },
+      { '@type': 'ListItem', position: 4, name: comp.domain },
+    ],
+  },
+]
+---
+<html lang="en">
+<head>
+  <Head
+    title={TITLE}
+    description={DESCRIPTION}
+    card={`${tag}-${company}`}
+    schema={schema}
+    noindex={EMPTY}
+  />
+</head>
+<body>
+  <Nav city={city} industry={industry} />
+
+  <div class="page wrap">
+    <p class="crumb">
+      <a href={`/${city}`}>{cityName}</a> <span class="sep">›</span>{' '}
+      <a href={`/${city}/${industry}`}>{label}</a>
+    </p>
+    <h1 class="mono">{comp.domain}</h1>
+    <p class="lede">
+      {comp.name ? comp.name + '. ' : ''}
+      Appears in the {SRC_LABEL[src]} results for{' '}
+      <span class="mono">"{market.keyword}"</span> in {cityName}.
+      {comp.reviews ? ` ${comp.reviews.toLocaleString()} Google reviews.` : ''}
+    </p>
+
+    <ul class="facts">
+      <li><b>{total.toLocaleString()}</b><span>referring domains</span></li>
+      <li><b>{rated.toLocaleString()}</b><span>with a rank score</span></li>
+      <li><b>{has.length}<i>/{market.leaderboard.length}</i></b><span>market connectors reached</span></li>
+      <li><b>#{rank}<i>/{market.competitors.length}</i></b><span>on connector coverage</span></li>
+    </ul>
+
+    <section class="sec">
+      <h2>Shared connectors this site is missing</h2>
+      <p class="sub">Domains that link to other companies in this market but not to{' '}
+      <span class="mono">{comp.domain}</span>. Reach is a direct count of how many of the{' '}
+      {market.competitors.length} companies each one links to, so a high number here means
+      most of the market has it and this site does not.</p>
+      {missing.length === 0
+        ? <p class="none">This site is reached by every connector in the market.</p>
+        : (
+          <table class="board">
+            <thead><tr><th>Domain</th><th class="num">Reaches</th><th class="num">Rank</th><th>Tags</th></tr></thead>
+            <tbody>
+              {missing.slice(0, 20).map((r) => (
+                <tr>
+                  <td class="dom mono">{r.domain}</td>
+                  <td class="num mono"><span class="bar" style={`--w:${(r.degree / market.competitors.length).toFixed(3)}`}>{r.degree}</span></td>
+                  <td class="num mono">{r.rank}</td>
+                  <td class="tags">{r.tags.map((t) => <em>{t}</em>)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      {missing.length > 20 && <p class="more">Showing 20 of {missing.length}.</p>}
+    </section>
+
+    {has.length > 0 && (
+      <section class="sec">
+        <h2>Shared connectors it has</h2>
+        <p class="sub">Domains linking to this site and at least one competitor.</p>
+        <ul class="chips">
+          {has.map((r) => <li><span class="mono">{r.domain}</span><i>{r.degree}</i></li>)}
+        </ul>
+      </section>
+    )}
+
+    {tiers.length > 0 && (
+      <section class="sec">
+        <h2>The full referring profile</h2>
+        <p class="sub">All {total.toLocaleString()} referring domains grouped by rank score.
+        A zero score is one vendor's estimate, not a verdict on the link.{' '}
+        <a href="/methodology">What these scores are</a>.</p>
+        <div class="tiers">
+          {tiers.map((t) => (
+            <div class="tier">
+              <div class="tier-h">
+                <span class="dot" style={`background:${t.color}`}></span>
+                <b>{t.label}</b>
+                <span class="n mono">{t.total.toLocaleString()}</span>
+              </div>
+              <div class="tier-bar"><span style={`width:${((t.total / total) * 100).toFixed(1)}%;background:${t.color}`}></span></div>
+              {t.id !== 'unranked' && (
+                <ul class="sample">
+                  {t.items.slice(0, 8).map((i) => <li class="mono">{i.domain}</li>)}
+                  {t.total > 8 && <li class="rest">+{(t.total - 8).toLocaleString()} more</li>}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="sec">
+      <h2>The rest of this market</h2>
+      <ul class="peers">
+        {peers.map((p) => (
+          <li class={p.domain === comp.domain ? 'self' : ''}>
+            <a href={`/${city}/${industry}/${slugOf(p.domain)}`}>
+              <span class="mono">{p.domain}</span>
+              <i>{p.n} connectors</i>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+  <Footer />
+</body>
+</html>
+
+<style>
+  .page { padding: 40px var(--gutter) 80px; max-width: 1000px; }
+  .crumb { font-size: 12.5px; color: var(--dim); margin: 0 0 14px; }
+  .crumb a { color: var(--dim); text-decoration: none; }
+  .crumb a:hover { color: var(--ink); }
+  .crumb .sep { color: #3f4653; margin: 0 4px; }
+  h1 { font-family: var(--mono); font-size: clamp(24px, 3.4vw, 38px); font-weight: 500; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .lede { font-size: 16.5px; max-width: 60ch; }
+  .lede .mono { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+
+  .facts { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 26px 0 0; }
+  .facts li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 11px 15px; display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
+  .facts b { font-family: var(--serif); font-size: 27px; line-height: 1; }
+  .facts i { font-style: normal; color: var(--dim); font-size: .6em; }
+  .facts span { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+
+  .sec { margin-top: 46px; padding-top: 34px; border-top: 1px solid var(--line); }
+  .sub { color: var(--dim); font-size: 14px; margin: 0 0 20px; max-width: 74ch; text-wrap: pretty; }
+  .sub .mono { font-family: var(--mono); font-size: .92em; color: var(--ink); }
+  .none { color: var(--green); font-size: 14px; }
+  .more { color: var(--dim); font-size: 12.5px; margin-top: 12px; }
+
+  .board { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .board th { text-align: left; color: var(--dim); font-family: var(--mono); font-weight: 400;
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 0 10px 9px; border-bottom: 1px solid var(--line); }
+  .board td { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); }
+  .board tr:hover td { background: var(--panel); }
+  .board .num { text-align: right; white-space: nowrap; }
+  .board .dom { color: var(--ink); overflow-wrap: anywhere; }
+  .bar { position: relative; display: inline-block; padding-left: 48px; }
+  .bar::before, .bar::after { content: ''; position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%); height: 5px; border-radius: 3px; }
+  .bar::before { width: 42px; background: var(--panel-2); }
+  .bar::after { width: calc(var(--w) * 42px); background: var(--ember); }
+  .tags em { font-style: normal; font-size: 10.5px; color: var(--dim); background: var(--panel-2);
+    border-radius: 4px; padding: 2px 6px; margin-right: 4px; display: inline-block; }
+
+  .chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+  .chips li { background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 9px; font-size: 12px; display: flex; gap: 8px; align-items: baseline; }
+  .chips i { font-style: normal; color: var(--green); font-size: 11px; }
+
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .tier { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .tier-h { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .tier-h b { font-weight: 500; }
+  .tier-h .n { margin-left: auto; color: var(--dim); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .tier-bar { height: 3px; background: var(--panel-2); border-radius: 2px; margin: 10px 0 12px; overflow: hidden; }
+  .tier-bar span { display: block; height: 100%; }
+  .sample { list-style: none; padding: 0; margin: 0; font-size: 11.5px; color: var(--dim); }
+  .sample li { padding: 2px 0; overflow-wrap: anywhere; }
+  .sample .rest { color: #4a5260; padding-top: 5px; }
+
+  .peers { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+  .peers a { display: flex; gap: 9px; align-items: baseline; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 12px;
+    text-decoration: none; color: var(--ink-soft); }
+  .peers a:hover { border-color: #39414f; color: var(--ink); }
+  .peers .self a { border-color: var(--ember); color: var(--ink); }
+  .peers i { font-style: normal; color: var(--dim); font-size: 11px; }
+
+</style>
