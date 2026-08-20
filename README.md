@@ -1,10 +1,45 @@
-# dfwseo.com
+# The DFW Link Graph
 
-Public research property mapping the DFW link economy: which domains actually
-confer local authority, per industry and metro-wide.
+**[dfwseo.com](https://dfwseo.com)**
+
+For each of 40 local markets across Dallas and Fort Worth, this takes the
+companies Google actually shows, pulls every domain linking to two or more of
+them, and maps what holds that market together.
+
+The finding it is built around: **markets with a real institutional gatekeeper
+look nothing like markets without one.** The State Bar of Texas links to all
+twelve Fort Worth criminal defense firms in the sample. Dallas personal injury,
+the most valuable local search market measured at $835k a month in
+ad-equivalent value, is connected instead by three national directories open to
+anyone.
+
+![The DFW link graph](https://dfwseo.com/og/default.jpg)
+
+Everything is measured rather than assumed, and every decision in `docs/`
+records the number that drove it. Where a method has a limit, it says so:
+see [docs/methodology.md](docs/methodology.md) for what the classifier
+provably cannot do, and why "scores zero" is a statement about a vendor metric
+rather than a verdict on a link.
 
 **Not a product.** A published research project. No accounts, no billing, no
 user data, and nothing collected from readers.
+
+## Using this for another metro
+
+The pipeline is not DFW-specific. To point it somewhere else, edit
+`scripts/sweep.mjs`:
+
+- `CITIES` — swap the city names and DataForSEO location codes
+- `INDUSTRIES` — the candidate head terms per industry
+- `data/excluded-domains.json` — national chains and directories are regional,
+  so this list will need rebuilding for a new market
+
+Then `npm run sweep && npm run build`. Expect to spend around $10-15 for 40
+markets, and expect the exclusion list to need a pass of human review: the
+automatic classifier handles roughly 96% of it and cannot handle the rest.
+
+Read [docs/methodology.md](docs/methodology.md) first. Most of what is worth
+copying here is the reasoning, not the code.
 
 ## Architecture
 
